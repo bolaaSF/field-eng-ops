@@ -1,0 +1,3616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Engineering Operating Model | Vercel VP RevOps</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #111111;
+            --surface-2: #1a1a1a;
+            --surface-3: #222222;
+            --border: #2a2a2a;
+            --border-hover: #444;
+            --text: #ededed;
+            --text-secondary: #888;
+            --text-muted: #666;
+            --accent: #0070f3;
+            --accent-soft: rgba(0, 112, 243, 0.1);
+            --green: #00c853;
+            --green-soft: rgba(0, 200, 83, 0.1);
+            --red: #ff4444;
+            --red-soft: rgba(255, 68, 68, 0.08);
+            --yellow: #f5a623;
+            --yellow-soft: rgba(245, 166, 35, 0.1);
+            --purple: #7928ca;
+            --purple-soft: rgba(121, 40, 202, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+        }
+
+        .nav-logo {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-logo svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .nav-link {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: none;
+            background: none;
+            font-family: inherit;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text);
+            background: var(--surface-2);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0, 112, 243, 0.2);
+        }
+
+        .hero h1 {
+            font-size: 2.75rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+            background: linear-gradient(to bottom, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 2rem 6rem;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-label .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .card h3 {
+            font-size: 1.0625rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .card p, .card li {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .card li {
+            padding: 0.375rem 0;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .card li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.85rem;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        /* Win/Loss specific */
+        .win .card-label { color: var(--green); }
+        .win .dot { background: var(--green); }
+        .loss .card-label { color: var(--red); }
+        .loss .dot { background: var(--red); }
+        .risk .card-label { color: var(--yellow); }
+        .risk .dot { background: var(--yellow); }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Competitor table */
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+
+        .comp-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .comp-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .comp-table tr:hover td {
+            background: var(--surface);
+        }
+
+        .comp-table td:first-child {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tag-green { background: var(--green-soft); color: var(--green); }
+        .tag-red { background: var(--red-soft); color: var(--red); }
+        .tag-yellow { background: var(--yellow-soft); color: var(--yellow); }
+
+        /* Timeline / Rhythm */
+        .rhythm-block {
+            margin-bottom: 2rem;
+        }
+
+        .rhythm-block h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .rhythm-block h3 .freq {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .rhythm-item {
+            display: grid;
+            grid-template-columns: 1fr 200px 1fr;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-left: 2px solid var(--border);
+            margin-left: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .rhythm-item:hover {
+            border-left-color: var(--accent);
+        }
+
+        .rhythm-item .activity {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .rhythm-item .who {
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+        }
+
+        .rhythm-item .purpose {
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+        }
+
+        /* Handoff Protocol */
+        .handoff-flow {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 2.5rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+
+        .handoff-node {
+            flex-shrink: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            text-align: center;
+            min-width: 140px;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .handoff-node:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .handoff-node .node-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.25rem;
+        }
+
+        .handoff-node .node-team {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .handoff-arrow {
+            flex-shrink: 0;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            padding: 0 0.5rem;
+        }
+
+        /* Metrics Dashboard */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .metric-card .metric-team {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-card .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.8125rem;
+        }
+
+        .metric-card .metric-item:last-child {
+            border-bottom: none;
+        }
+
+        .metric-card .metric-name {
+            color: var(--text-secondary);
+        }
+
+        .metric-card .metric-target {
+            color: var(--text);
+            font-weight: 500;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+        }
+
+        /* 90-day plan */
+        .plan-phases {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .phase {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phase::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+
+        .phase:nth-child(1)::before { background: var(--accent); }
+        .phase:nth-child(2)::before { background: var(--yellow); }
+        .phase:nth-child(3)::before { background: var(--green); }
+
+        .phase-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.25rem;
+        }
+
+        .phase:nth-child(1) .phase-label { color: var(--accent); }
+        .phase:nth-child(2) .phase-label { color: var(--yellow); }
+        .phase:nth-child(3) .phase-label { color: var(--green); }
+
+        .phase h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .phase li {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            padding: 0.375rem 0;
+            padding-left: 1rem;
+            position: relative;
+            list-style: none;
+        }
+
+        .phase li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.7rem;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        /* Health Score */
+        .health-bar-container {
+            margin-bottom: 2rem;
+        }
+
+        .health-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        .health-label {
+            width: 200px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .health-bar-bg {
+            flex: 1;
+            height: 24px;
+            background: var(--surface-2);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .health-bar {
+            height: 100%;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding-left: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--bg);
+            transition: width 0.8s ease;
+        }
+
+        /* Footer */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        /* Big idea callout */
+        .callout {
+            background: var(--accent-soft);
+            border: 1px solid rgba(0, 112, 243, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin: 2rem 0;
+        }
+
+        .callout h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .callout p {
+            font-size: 0.9375rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Strategy Build */
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 800;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-header h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .step-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .step-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .hypothesis-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .hypothesis-card h4 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .hypothesis-card .prob {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 0.5rem;
+        }
+
+        .prob-high { background: var(--green-soft); color: var(--green); }
+        .prob-med { background: var(--yellow-soft); color: var(--yellow); }
+
+        .assumption-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+            margin: 1rem 0;
+        }
+
+        .assumption-table th {
+            text-align: left;
+            padding: 0.625rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .assumption-table td {
+            padding: 0.625rem 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: var(--text-secondary);
+        }
+
+        .assumption-table tr:hover td { background: var(--surface); }
+
+        .stakeholder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .stakeholder-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .stakeholder-card h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stakeholder-card li {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            padding: 0.25rem 0;
+            padding-left: 1rem;
+            position: relative;
+            list-style: none;
+        }
+
+        .stakeholder-card li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.6rem;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .cheat-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.8125rem;
+            transition: background 0.15s;
+        }
+
+        .cheat-row:hover { background: var(--surface-2); }
+
+        .cheat-row:last-child { border-bottom: none; }
+
+        .cheat-q {
+            color: var(--text);
+            font-weight: 600;
+            font-style: italic;
+        }
+
+        .cheat-a {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .quote-block {
+            background: var(--surface-2);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+            font-size: 0.9375rem;
+            color: var(--text);
+            font-style: italic;
+            line-height: 1.7;
+        }
+
+        .danger-callout {
+            background: var(--red-soft);
+            border: 1px solid rgba(255, 68, 68, 0.2);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin: 1rem 0;
+        }
+
+        .danger-callout h4 {
+            color: var(--red);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .danger-callout p {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .power-map {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin: 1rem 0;
+        }
+
+        .power-map strong { color: var(--text); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.75rem; }
+            .card-grid { grid-template-columns: 1fr; }
+            .plan-phases { grid-template-columns: 1fr; }
+            .rhythm-item { grid-template-columns: 1fr; gap: 0.25rem; }
+            .handoff-flow { flex-wrap: wrap; justify-content: center; }
+            .nav-links { display: none; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Subsection headers */
+        .sub-header {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Journey toggle tabs */
+        /* Top-level view toggle */
+        .journey-tabs {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.25rem;
+        }
+
+        .journey-tab {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            text-align: center;
+        }
+
+        .journey-tab:hover { color: var(--text); }
+        .journey-tab.jt-active { background: var(--surface-2); color: var(--text); }
+
+        .journey-view { display: none; }
+        .journey-view.jv-active { display: block; }
+
+        /* Interactive stage accordion */
+        .stage-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            user-select: none;
+        }
+
+        .stage-header:hover { border-color: var(--border-hover); background: var(--surface-2); }
+        .stage-header.sh-open { border-radius: 12px 12px 0 0; margin-bottom: 0; border-bottom-color: transparent; }
+
+        .stage-header .sh-badge {
+            flex-shrink: 0;
+            font-size: 0.625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .stage-header .sh-title { font-size: 1.0625rem; font-weight: 700; flex: 1; }
+        .stage-header .sh-subtitle { font-size: 0.8125rem; color: var(--text-secondary); }
+        .stage-header .sh-arrow { font-size: 1.25rem; color: var(--text-muted); transition: transform 0.2s; }
+        .stage-header.sh-open .sh-arrow { transform: rotate(90deg); }
+
+        .stage-body {
+            display: none;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .stage-body.sb-open { display: block; }
+
+        /* Inner tabs within each stage */
+        .inner-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .inner-tab {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            text-align: center;
+        }
+
+        .inner-tab:hover { color: var(--text-secondary); }
+        .inner-tab.it-active { color: var(--text); border-bottom-color: var(--accent); }
+        .inner-tab.it-breaks.it-active { border-bottom-color: var(--red); }
+        .inner-tab.it-fix.it-active { border-bottom-color: var(--green); }
+
+        .inner-view { display: none; padding: 1.5rem; }
+        .inner-view.iv-active { display: block; }
+
+        /* Stage content grid */
+        .stage-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .stage-grid h4 {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stage-grid p, .stage-grid li {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .stage-grid ul { padding-left: 1rem; margin: 0; }
+
+        .stage-quote {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* Gap banner inside stage */
+        .gap-banner {
+            background: var(--red-soft);
+            border: 1px solid rgba(255, 68, 68, 0.2);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .gap-banner h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--red);
+            margin-bottom: 0.375rem;
+        }
+
+        .gap-banner .gap-quote {
+            background: rgba(255, 68, 68, 0.08);
+            border-left: 3px solid var(--red);
+            border-radius: 6px;
+            padding: 0.625rem 0.875rem;
+            margin: 0.5rem 0;
+            font-style: italic;
+            font-size: 0.8125rem;
+            color: var(--text);
+        }
+
+        .gap-banner p { font-size: 0.8125rem; color: var(--text-secondary); margin: 0; }
+
+        /* Fix/solution block inside stage */
+        .fix-block {
+            background: var(--green-soft);
+            border: 1px solid rgba(0, 200, 83, 0.2);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .fix-block h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--green);
+            margin-bottom: 0.5rem;
+        }
+
+        .fix-block p, .fix-block li { font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; }
+        .fix-block ul { padding-left: 1rem; margin: 0; }
+
+        /* Engine flow diagram */
+        .engine-flow {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .engine-node {
+            flex: 1;
+            min-width: 180px;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .engine-node:hover { border-color: var(--border-hover); }
+
+        .engine-node .en-num {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .engine-node h4 { font-size: 0.875rem; font-weight: 700; margin-bottom: 0.375rem; }
+        .engine-node p { font-size: 0.75rem; color: var(--text-secondary); }
+
+        .engine-arrow {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.25rem;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        /* Engine detail blocks */
+        .engine-detail {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .engine-detail h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+
+        .engine-detail .ed-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .engine-detail .ed-grid h4 {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.375rem;
+        }
+
+        .engine-detail .ed-grid p, .engine-detail .ed-grid li { font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; }
+        .engine-detail .ed-grid ul { padding-left: 1rem; margin: 0; }
+
+        .stage-connector {
+            text-align: center;
+            padding: 0.125rem 0;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .stage-grid { grid-template-columns: 1fr; }
+            .journey-tabs { flex-direction: column; }
+            .engine-flow { flex-direction: column; }
+            .engine-arrow { transform: rotate(90deg); padding: 0.25rem 0; }
+            .engine-detail .ed-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Comparison list for revops */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr 1fr;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            font-size: 0.8125rem;
+        }
+
+        .compare-grid .cg-header {
+            background: var(--surface-2);
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .compare-grid .cg-cell {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+        }
+
+        .compare-grid .cg-cell:nth-child(3n+1) {
+            color: var(--text);
+            font-weight: 500;
+            background: var(--surface);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <div class="nav-inner">
+        <div class="nav-logo">
+            <svg viewBox="0 0 76 65" fill="currentColor"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z"/></svg>
+            Field Engineering Ops
+        </div>
+        <div class="nav-links">
+            <button class="nav-link active" onclick="showSection('competitive')">Competitive Intel</button>
+            <button class="nav-link" onclick="showSection('problem')">Commercial Engine</button>
+            <button class="nav-link" onclick="showSection('model')">Operating Model</button>
+            <button class="nav-link" onclick="showSection('pricing')">Pricing</button>
+            <button class="nav-link" onclick="showSection('metrics')">Metrics</button>
+            <button class="nav-link" onclick="showSection('plan')">90-Day Plan</button>
+            <button class="nav-link" onclick="showSection('strategy')">Strategy Build</button>
+        </div>
+    </div>
+</nav>
+
+<header class="hero">
+    <div class="hero-badge">VP Revenue Operations &mdash; Field Engineering</div>
+    <h1>One Operating System.<br>Five Teams. Zero Silos.</h1>
+    <p>A commercial engine and operational framework for unifying Sales Engineering, Post-Sales, Professional Services, Customer Support, and Shared Technical Services.</p>
+</header>
+
+<!-- SECTION 1: COMPETITIVE INTELLIGENCE -->
+<div id="competitive" class="section active">
+    <div class="section-header">
+        <h2>Where Vercel Wins &amp; Loses</h2>
+        <p>Honest competitive positioning based on market data, developer sentiment, and enterprise signals.</p>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value">$200M+</div>
+            <div class="stat-label">ARR (mid-2025)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">80%</div>
+            <div class="stat-label">Annualized Growth</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">$9.3B</div>
+            <div class="stat-label">Series F Valuation</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">6M+</div>
+            <div class="stat-label">Developers on Platform</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">3.5M</div>
+            <div class="stat-label">v0 Users</div>
+        </div>
+    </div>
+
+    <!-- Operational Context -->
+    <div class="stats-row" style="margin-top: -0.5rem;">
+        <div class="stat-card">
+            <div class="stat-value" style="font-size: 1.5rem;">~874</div>
+            <div class="stat-label">Employees</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="font-size: 1.5rem;">37</div>
+            <div class="stat-label">Quota-Carrying Reps</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="font-size: 1.5rem;">$243K</div>
+            <div class="stat-label">Revenue per Employee</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="font-size: 1.5rem;">$300M</div>
+            <div class="stat-label">Fresh Capital (6+ yr runway)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="font-size: 1.5rem;">~$42M</div>
+            <div class="stat-label">v0 ARR</div>
+        </div>
+    </div>
+
+    <!-- Strategic Context -->
+    <div class="callout" style="margin-bottom: 2rem;">
+        <h3>The Stripe Parallel</h3>
+        <p>Vercel hired Stripe's CBO (Jeanne DeWitt Grosser) as COO. She ran Stripe's enterprise GTM build &mdash; taking a developer-first payment company from PLG into enterprise sales. Vercel is running the <strong>exact same playbook</strong>, compressing 10 years of enterprise motion-building into months. David is her first infrastructure hire for the field side. This role is the operating system underneath.</p>
+        <p style="margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-muted);"><strong>GTM leadership reset:</strong> Tomer Chernia (SVP Sales) departed for Anysphere/Cursor in April 2025, right as Jeanne arrived. This was deliberate &mdash; the enterprise motion is being rebuilt from scratch.</p>
+    </div>
+
+    <div class="card-grid">
+        <div class="card win">
+            <div class="card-label"><span class="dot"></span>Vercel Wins</div>
+            <h3>Next.js Ecosystem Ownership</h3>
+            <ul>
+                <li>1M+ monthly active Next.js developers &mdash; Vercel controls the framework roadmap</li>
+                <li>Server Actions, App Router, edge middleware ship on Vercel first and best</li>
+                <li>NuxtLabs acquisition (Jul 2025) extends control to Vue ecosystem</li>
+                <li>Turborepo deepens monorepo toolchain dependency</li>
+            </ul>
+        </div>
+        <div class="card win">
+            <div class="card-label"><span class="dot"></span>Vercel Wins</div>
+            <h3>Developer Experience</h3>
+            <ul>
+                <li>Preview deployments &mdash; shareable URLs on every PR. The single most praised feature</li>
+                <li>Git push-to-deploy, zero-config SSL, automatic builds</li>
+                <li>Even devs who migrate to competitors admit they miss the UX</li>
+                <li>v0 AI code generation: $36-42M ARR, 21% of total revenue</li>
+            </ul>
+        </div>
+        <div class="card win">
+            <div class="card-label"><span class="dot"></span>Vercel Wins</div>
+            <h3>Enterprise Traction</h3>
+            <ul>
+                <li>Named customers: OpenAI, Anthropic, PayPal, Walmart, Nike, Apple, Netflix</li>
+                <li>264% ROI (Forrester-backed study)</li>
+                <li>Thomson Reuters: CoCounsel built by 3 devs in 2 months, serving 1,300 firms</li>
+                <li>COO from Stripe (Jeanne DeWitt Grosser) signals enterprise maturity</li>
+            </ul>
+        </div>
+        <div class="card loss">
+            <div class="card-label"><span class="dot"></span>Vercel Loses</div>
+            <h3>Pricing Is the #1 Churn Driver</h3>
+            <ul>
+                <li>Usage-based billing creates unpredictable costs &mdash; traffic spikes become financial risk</li>
+                <li>Sentiment shifted from "this is amazing" to "did you see my bill?"</li>
+                <li>Pro to Enterprise jump: $20/user/mo to ~$20-25K/year contract</li>
+                <li>v0 credit backlash: users burned $30 Pro credits in 24 hours</li>
+            </ul>
+        </div>
+        <div class="card loss">
+            <div class="card-label"><span class="dot"></span>Vercel Loses</div>
+            <h3>Backend Is the Big Hole</h3>
+            <ul>
+                <li>No persistent processes, background workers, WebSockets, or native cron</li>
+                <li>No first-class managed databases &mdash; sunset Vercel Postgres/KV (June 2025), now relies on marketplace integrations</li>
+                <li>No GPU compute &mdash; AI/ML workloads must run elsewhere</li>
+                <li>Railway and Render are genuinely full-stack; Vercel is frontend pretending</li>
+            </ul>
+        </div>
+        <div class="card loss">
+            <div class="card-label"><span class="dot"></span>Vercel Loses</div>
+            <h3>Vendor Lock-In Perception</h3>
+            <ul>
+                <li>next/image requires proprietary image processing</li>
+                <li>Code paths exist that only execute on Vercel (minimal mode private flag)</li>
+                <li>Next.js 16 Deployment Adapter API in alpha &mdash; an admission it was broken</li>
+                <li>React Foundation formed explicitly to prevent overconcentration of influence</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3 class="sub-header">Competitive Landscape</h3>
+
+    <table class="comp-table">
+        <thead>
+            <tr>
+                <th>Competitor</th>
+                <th>Primary Threat</th>
+                <th>Where They Win</th>
+                <th>Vercel Advantage</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Cloudflare</td>
+                <td><span class="tag tag-red">Existential</span></td>
+                <td>Owns the network, sub-50ms globally, free unlimited bandwidth, Docker in 2026</td>
+                <td>Next.js integration depth, DX polish, enterprise relationships</td>
+            </tr>
+            <tr>
+                <td>AWS Amplify</td>
+                <td><span class="tag tag-red">High</span></td>
+                <td>40% cheaper at scale, full AWS integration, compliance built in, EDP bundling</td>
+                <td>Developer experience, deployment speed, framework optimization</td>
+            </tr>
+            <tr>
+                <td>Railway</td>
+                <td><span class="tag tag-yellow">Medium</span></td>
+                <td>True full-stack: native DBs, workers, cron. Predictable pricing. Comparable DX</td>
+                <td>Enterprise brand, scale, Next.js performance optimization</td>
+            </tr>
+            <tr>
+                <td>Render</td>
+                <td><span class="tag tag-yellow">Medium</span></td>
+                <td>Managed Postgres/Redis, full language support, background workers, predictable pricing</td>
+                <td>Frontend-specific features, preview deployments, edge network</td>
+            </tr>
+            <tr>
+                <td>Netlify</td>
+                <td><span class="tag tag-yellow">Medium</span></td>
+                <td>Framework-agnostic, no lock-in perception, generous free tier</td>
+                <td>Next.js ownership, AI products (v0, AI SDK), enterprise traction</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 class="sub-header">Deployment Platform Market Share</h3>
+    <p style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1.5rem;">Source: WMTips.com, Feb 2026 — 3.3M websites analyzed. Excludes traditional hosting (AWS EC2, DigitalOcean droplets, etc.)</p>
+
+    <div class="health-bar-container">
+        <div class="health-row">
+            <span class="health-label"><strong style="color: var(--text);">Vercel</strong></span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 32.5%; background: var(--accent);">32.5%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Netlify</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 19.6%; background: #00ad9f;">19.6%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">GitHub Pages</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 19.5%; background: var(--text-muted);">19.5%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Cloudflare Pages</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 12%; background: #f48120;">~12%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">AWS Amplify</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 8%; background: #ff9900;">~8%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Railway / Render / Fly.io</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 8%; background: var(--purple);">~8%</div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="sub-header">Fastest Growing Incumbents</h3>
+
+    <div class="card-grid">
+        <div class="card" style="border-left: 3px solid var(--accent);">
+            <div class="card-label" style="color: var(--accent);"><span class="dot" style="background: var(--accent);"></span>Vercel &mdash; Growth Leader</div>
+            <h3>~82% YoY Revenue Growth</h3>
+            <ul>
+                <li>$100M ARR (early 2024) &rarr; $144M (end 2024) &rarr; $200M+ (mid-2025)</li>
+                <li>Doubled ARR in ~15 months</li>
+                <li>Valuation: $3.25B (May 2024) &rarr; $9.3B (Sep 2025) &mdash; 3x in 16 months</li>
+                <li>v0 contributing ~21% of total revenue &mdash; a product that didn't exist 18 months ago</li>
+            </ul>
+        </div>
+        <div class="card" style="border-left: 3px solid #f48120;">
+            <div class="card-label" style="color: #f48120;"><span class="dot" style="background: #f48120;"></span>Cloudflare &mdash; Expanding Up-Stack</div>
+            <h3>$100M+ Single Deal (Q1 2025)</h3>
+            <ul>
+                <li>Biggest-ever deal driven by Workers platform, not just CDN/security</li>
+                <li>Merging Pages into Workers &mdash; consolidating developer platform</li>
+                <li>~$40B+ market cap. Leveraging existing enterprise CDN/security relationships</li>
+                <li>3M+ developers on Workers. Docker container support added 2026</li>
+            </ul>
+        </div>
+        <div class="card" style="border-left: 3px solid #00ad9f;">
+            <div class="card-label" style="color: #00ad9f;"><span class="dot" style="background: #00ad9f;"></span>Netlify &mdash; Losing Momentum</div>
+            <h3>Growth Slowing: 40% &rarr; ~12% YoY</h3>
+            <ul>
+                <li>Revenue: $33M (2023) &rarr; $46.3M (2024) &rarr; ~$52M est. (2025)</li>
+                <li>Last raised at $1.9B valuation in Nov 2021 &mdash; no new round since</li>
+                <li>Headcount: 177 (down from peak)</li>
+                <li>Still solid market share but losing momentum to Vercel and Cloudflare</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card-grid">
+        <div class="card risk">
+            <div class="card-label"><span class="dot"></span>Market Risk</div>
+            <h3>Framework Concentration</h3>
+            <ul>
+                <li>Business tightly coupled to Next.js dominance</li>
+                <li>Astro leads Next.js in developer satisfaction by 39 points</li>
+                <li>SvelteKit, TanStack gaining as alternatives</li>
+                <li>If market fragments away from React/Next.js, core value prop weakens</li>
+            </ul>
+        </div>
+        <div class="card risk">
+            <div class="card-label"><span class="dot"></span>Market Risk</div>
+            <h3>Enterprise Objections</h3>
+            <ul>
+                <li>AWS EDP conflicts &mdash; most enterprises already have AWS commitments</li>
+                <li>No multi-cloud story (Vercel runs on AWS only)</li>
+                <li>Billing complexity: Edge Requests, ISR events, function calls, CPU time</li>
+                <li>Compliance story built from scratch vs. inherited from AWS</li>
+            </ul>
+        </div>
+        <div class="card risk">
+            <div class="card-label"><span class="dot"></span>Market Risk</div>
+            <h3>The "Good Enough" Problem</h3>
+            <ul>
+                <li>DX advantage eroding as Railway, Cloudflare catch up</li>
+                <li>Once DX is table stakes, competition shifts to price &mdash; where Vercel loses</li>
+                <li>AI workloads are long-running and compute-heavy; per-ms billing is prohibitive</li>
+                <li>Cloud providers can bundle hosting into existing contracts at marginal cost</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout" style="background: var(--red-soft); border-color: rgba(255, 68, 68, 0.2);">
+        <h3 style="color: var(--red);">Existential Threat: Cloudflare Vinext</h3>
+        <p>Cloudflare's &ldquo;Vinext&rdquo; project reimplemented <strong>94% of the Next.js API in one week</strong> using Claude. They're unbundling Vercel's core value prop &mdash; Next.js hosting &mdash; and packaging it on cheaper, faster infrastructure with unlimited free bandwidth. This isn't a future risk. It's happening now. The moat has to be ecosystem gravity (Next.js + v0 + AI SDK + enterprise features), not hosting alone.</p>
+    </div>
+
+    <h3 class="sub-header">GTM Maturity Assessment</h3>
+    <p style="color: var(--text-secondary); font-size: 0.9375rem; margin-bottom: 1.5rem;">Where Vercel is strong (product) vs. where it's weak (operations). This gap IS the job description.</p>
+
+    <div class="health-bar-container">
+        <div class="health-row">
+            <span class="health-label">Product-Market Fit</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 100%; background: var(--green);">5/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">PLG Motion</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 100%; background: var(--green);">5/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Enterprise Sales Motion</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 40%; background: var(--yellow);">2/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Consumption Tracking</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 20%; background: var(--red);">1/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Cross-Team Coordination</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 20%; background: var(--red);">1/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">CRM &amp; Data Quality</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 40%; background: var(--yellow);">2/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Comp Model Design</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 20%; background: var(--red);">1/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Field Engineering Ops</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 20%; background: var(--red);">1/5</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Product Feedback Loop</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 20%; background: var(--red);">1/5</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="callout" style="margin-top: 1.5rem;">
+        <h3>Two RevOps Functions &mdash; Complementary, Not Competing</h3>
+        <p>Vercel has <strong>two RevOps roles</strong>. Renee Kelley (Sr. Director, Revenue Operations) reports to the CRO and owns the sales-side operating model &mdash; pipeline, forecasting, territory for quota-carrying reps. This role (VP RevOps, Field Engineering) reports to David Totten and owns the <strong>technical-side operating model</strong> &mdash; consumption tracking, cross-team handoffs, field-to-product feedback, comp design for non-quota technical teams.</p>
+        <p style="margin-top: 0.75rem;">The two functions share the CRM and data infrastructure but own different motions. Renee's team asks: <em>&ldquo;How do we close more deals?&rdquo;</em> This role asks: <em>&ldquo;How do we make every deal successful after it closes &mdash; and turn that success into expansion?&rdquo;</em></p>
+        <p style="margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-muted);"><strong>In a consumption model, post-sale ops is arguably more important than pre-sale ops.</strong> Revenue isn't recognized at booking &mdash; it's recognized at consumption. The team that drives consumption IS the revenue team.</p>
+    </div>
+</div>
+
+<!-- SECTION 2: THE COMMERCIAL ENGINE -->
+<div id="problem" class="section">
+    <div class="section-header">
+        <h2>The Commercial Engine</h2>
+        <p>How revenue actually flows at a consumption-based platform company &mdash; and where Field Engineering is the critical path.</p>
+    </div>
+
+    <!-- Top-level Toggle -->
+    <div class="journey-tabs">
+        <button class="journey-tab jt-active" onclick="showJourney('engine')">The Full Engine</button>
+        <button class="journey-tab" onclick="showJourney('stages')">Field Engineering Deep Dive</button>
+    </div>
+
+    <!-- VIEW 1: THE FULL COMMERCIAL ENGINE -->
+    <div id="jv-engine" class="journey-view jv-active">
+
+        <div class="callout">
+            <h3>What Is a Commercial Engine?</h3>
+            <p>Not just a sales process. It's the complete system that turns market signals into revenue and revenue into growth signals. For consumption-based companies like Vercel, the engine looks fundamentally different from traditional SaaS &mdash; field engineering isn't downstream of sales, it <strong>is</strong> the revenue motion.</p>
+        </div>
+
+        <!-- FULL ENGINE FLOW -->
+        <h3 class="sub-header">The Engine &mdash; End to End</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9375rem; margin-bottom: 1.5rem;">Click each layer to see what it does, who owns it, and what VP RevOps controls.</p>
+
+        <!-- Engine Layer 1: Demand & Signals -->
+        <div class="stage-header" onclick="toggleStage(this)" style="border-left: 3px solid var(--accent);">
+            <span class="sh-badge" style="background: var(--accent-soft); color: var(--accent);">Layer 1</span>
+            <span class="sh-title">Demand &amp; Market Signals</span>
+            <span class="sh-subtitle">Inbound, PLG usage, outbound, market triggers</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'eng1-what')">What Flows Here</button>
+                <button class="inner-tab" onclick="showInner(this, 'eng1-how')">How the Best Do It</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'eng1-revops')">RevOps Lever</button>
+            </div>
+            <div id="eng1-what" class="inner-view iv-active">
+                <div class="stage-grid">
+                    <div>
+                        <h4>Inbound</h4>
+                        <ul>
+                            <li>Website demo requests</li>
+                            <li>Content-driven leads (docs, tutorials, blog)</li>
+                            <li>Event/conference pipeline</li>
+                            <li>Partner referrals</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Product-Led (PLG)</h4>
+                        <ul>
+                            <li>Free &rarr; Pro conversion signals</li>
+                            <li>Usage spikes on free/Pro accounts</li>
+                            <li>Team expansion (seats added)</li>
+                            <li>Feature gate hits (SSO, audit logs)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Outbound &amp; Market</h4>
+                        <ul>
+                            <li>Competitive displacement signals (Netlify/CF churn)</li>
+                            <li>Funding announcements (companies scaling infra)</li>
+                            <li>Job postings (hiring Next.js/React devs)</li>
+                            <li>Industry news (migrations, replatforms)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div id="eng1-how" class="inner-view">
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Databricks</h4>
+                    <p>Built a PQA (Product-Qualified Account) model that scored accounts based on cluster usage, data volume, and feature adoption. Accounts auto-routed to SDRs or directly to AEs based on score. Field Engineering SEs were looped in when technical complexity exceeded a threshold &mdash; not on every deal.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Datadog</h4>
+                    <p>Usage-based PQL scoring with 14-day activation windows. If a free account deploys 3+ integrations within 14 days, it triggers outbound. 60% of enterprise pipeline starts as self-serve.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Snowflake</h4>
+                    <p>Credit consumption velocity is the primary signal. Accounts consuming credits faster than committed get proactive expansion outreach. Market signals (IPOs, funding) trigger territory plays.</p>
+                </div>
+            </div>
+            <div id="eng1-revops" class="inner-view">
+                <div class="fix-block">
+                    <h4>What VP RevOps Owns Here</h4>
+                    <ul>
+                        <li><strong>PQL/PQA scoring model</strong> &mdash; define what usage patterns predict enterprise conversion</li>
+                        <li><strong>Signal routing logic</strong> &mdash; which signals go to SDRs, which go directly to AEs, which trigger SE involvement</li>
+                        <li><strong>Market signal automation</strong> &mdash; GTM Engineering builds the scrapers/triggers, RevOps defines what matters</li>
+                        <li><strong>Demand-to-pipeline attribution</strong> &mdash; which sources actually convert, at what cost</li>
+                    </ul>
+                </div>
+                <div class="gap-banner">
+                    <h4>Vercel Gap</h4>
+                    <p>No PQL model exists today. Self-serve accounts converting to enterprise is ad hoc. Territory design was non-existent until Feb 1st &mdash; one rep covering ALL software companies.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- Engine Layer 2: Qualification & Routing -->
+        <div class="stage-header" onclick="toggleStage(this)" style="border-left: 3px solid var(--green);">
+            <span class="sh-badge" style="background: rgba(0, 200, 83, 0.1); color: var(--green);">Layer 2</span>
+            <span class="sh-title">Qualification &amp; Account Routing</span>
+            <span class="sh-subtitle">Who gets what level of investment</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'eng2-what')">The Framework</button>
+                <button class="inner-tab" onclick="showInner(this, 'eng2-how')">How the Best Do It</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'eng2-revops')">RevOps Lever</button>
+            </div>
+            <div id="eng2-what" class="inner-view iv-active">
+                <div class="stage-grid">
+                    <div>
+                        <h4>Scaled (1:Many)</h4>
+                        <ul>
+                            <li>Self-serve docs, community forums</li>
+                            <li>Automated onboarding sequences</li>
+                            <li>Usage-based nudges and alerts</li>
+                            <li>Webinars, office hours</li>
+                        </ul>
+                        <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);"><strong>Accounts:</strong> Free + Pro (&lt;$5K ARR)</p>
+                    </div>
+                    <div>
+                        <h4>Pooled (1:Few)</h4>
+                        <ul>
+                            <li>Shared CSM/TAM coverage</li>
+                            <li>Cohort-based onboarding</li>
+                            <li>Quarterly check-ins (not monthly)</li>
+                            <li>Triggered engagement on health signals</li>
+                        </ul>
+                        <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);"><strong>Accounts:</strong> Enterprise ($25K&ndash;$100K ARR)</p>
+                    </div>
+                    <div>
+                        <h4>Dedicated (1:1)</h4>
+                        <ul>
+                            <li>Named TAM, dedicated SE</li>
+                            <li>Custom implementation (PS)</li>
+                            <li>Executive sponsor alignment</li>
+                            <li>Quarterly business reviews</li>
+                        </ul>
+                        <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);"><strong>Accounts:</strong> Strategic ($100K+ ARR)</p>
+                    </div>
+                </div>
+            </div>
+            <div id="eng2-how" class="inner-view">
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Twilio</h4>
+                    <p>Pioneer of the "self-serve to enterprise" motion. Usage tiers auto-trigger account transitions. A developer signs up, starts sending SMS, hits volume thresholds, gets assigned an account team. No human decides &mdash; the system routes based on consumption velocity.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">MongoDB</h4>
+                    <p>Atlas (cloud) accounts scored on cluster count, data size, and feature usage. &ldquo;Ready to Buy&rdquo; score auto-assigns accounts to reps. Field Engineering only engages when technical complexity warrants it &mdash; not every enterprise deal needs an SE.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Cloudflare</h4>
+                    <p>2M+ free users. Qualification is entirely usage-driven. Workers usage, bandwidth patterns, and enterprise feature exploration trigger outbound from specialized account teams. Segmentation is automated, not territory-based.</p>
+                </div>
+            </div>
+            <div id="eng2-revops" class="inner-view">
+                <div class="fix-block">
+                    <h4>What VP RevOps Owns Here</h4>
+                    <ul>
+                        <li><strong>Engagement model design</strong> &mdash; thresholds for scaled vs. pooled vs. dedicated coverage</li>
+                        <li><strong>Territory &amp; capacity modeling</strong> &mdash; balanced books, account-to-rep ratios, workload distribution</li>
+                        <li><strong>Investment framework</strong> &mdash; expected return per account tier, cost-to-serve analysis</li>
+                        <li><strong>Routing rules</strong> &mdash; which accounts get SE involvement, PS engagement, TAM coverage</li>
+                    </ul>
+                </div>
+                <div class="gap-banner">
+                    <h4>Vercel Gap</h4>
+                    <p>No segmentation model. No cost-to-serve analysis. Territory was 1 rep for all software companies. No framework for deciding which accounts deserve dedicated vs. pooled coverage.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- Engine Layer 3: Sales + Engineering Process -->
+        <div class="stage-header" onclick="toggleStage(this)" style="border-left: 3px solid var(--yellow);">
+            <span class="sh-badge" style="background: rgba(245, 166, 35, 0.1); color: var(--yellow);">Layer 3</span>
+            <span class="sh-title">Sales + Engineering Process</span>
+            <span class="sh-subtitle">How deals move from qualified to closed to live</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'eng3-what')">The Process</button>
+                <button class="inner-tab" onclick="showInner(this, 'eng3-how')">How the Best Do It</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'eng3-revops')">RevOps Lever</button>
+            </div>
+            <div id="eng3-what" class="inner-view iv-active">
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.25rem;">This is where Field Engineering is the critical path. The sales process for a consumption-based platform isn't &ldquo;sell then hand off&rdquo; &mdash; it's a continuous loop where technical teams drive revenue directly.</p>
+                <div class="stage-grid">
+                    <div>
+                        <h4>Pre-Sale (SE)</h4>
+                        <ul>
+                            <li>Technical validation &amp; POC</li>
+                            <li>Architecture design</li>
+                            <li>Competitive positioning</li>
+                            <li>Success criteria definition</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Post-Sale (Migration)</h4>
+                        <ul>
+                            <li>Workload conversion</li>
+                            <li>Consumption ramp</li>
+                            <li>Integration setup</li>
+                            <li>Initial adoption targets</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Ongoing (PS + Support)</h4>
+                        <ul>
+                            <li>Complex implementations</li>
+                            <li>Troubleshooting &amp; resolution</li>
+                            <li>Expansion identification</li>
+                            <li>Renewal preparation</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="background: var(--yellow-soft); border: 1px solid rgba(245, 166, 35, 0.2); border-radius: 10px; padding: 1rem 1.25rem; margin-top: 1.25rem;">
+                    <p style="font-size: 0.875rem; color: var(--text); margin: 0;"><strong>This is David's org.</strong> The &ldquo;Field Engineering Deep Dive&rdquo; tab breaks down each of these stages in detail &mdash; who runs it, where it breaks, and the fix.</p>
+                </div>
+            </div>
+            <div id="eng3-how" class="inner-view">
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Databricks</h4>
+                    <p>David built this. Strategy ops + chief of staff + shared technical services + deep architect teams with product/engineering interlocks. SEs weren't just demo runners &mdash; they were solution architects embedded in the sales motion. Field Engineering had its own ops function (what David is hiring for now at Vercel).</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Datadog</h4>
+                    <p>900+ customer-facing technical experts under one org: SEs, TAMs, Solution Architects. Unified field engineering with shared tooling and metrics. Closest structural comparison to what David is building at Vercel.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">HashiCorp</h4>
+                    <p>Open-source to enterprise pipeline. SEs focus on &ldquo;land&rdquo; (initial workload), CS/TAMs focus on &ldquo;expand&rdquo; (more products, more teams). Clear delineation prevents overlap. PS is an adoption accelerator, not a profit center.</p>
+                </div>
+            </div>
+            <div id="eng3-revops" class="inner-view">
+                <div class="fix-block">
+                    <h4>What VP RevOps Owns Here</h4>
+                    <ul>
+                        <li><strong>Deal process design</strong> &mdash; stage definitions, exit criteria, handoff triggers between teams</li>
+                        <li><strong>Comp design</strong> &mdash; consumption-based vs. bookings-based, SE overlay models, PS utilization targets</li>
+                        <li><strong>Forecasting</strong> &mdash; consumption velocity predicts renewal/expansion, not just pipeline stages</li>
+                        <li><strong>Cross-functional accountability</strong> &mdash; handoff quality as a KPI, not just individual team metrics</li>
+                    </ul>
+                </div>
+                <div class="gap-banner">
+                    <h4>Vercel Gap</h4>
+                    <p>Moving to consumption-based comp but can't track consumption curves yet. No structured handoff between teams. SE activity is untracked. Strategy ops team is &ldquo;very much execution&rdquo; &mdash; needs a strategic layer.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- Engine Layer 4: Goals, Comp & Investment -->
+        <div class="stage-header" onclick="toggleStage(this)" style="border-left: 3px solid var(--purple);">
+            <span class="sh-badge" style="background: rgba(121, 40, 202, 0.1); color: var(--purple);">Layer 4</span>
+            <span class="sh-title">Goals, Comp &amp; Investment Model</span>
+            <span class="sh-subtitle">How you pay people determines how they behave</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'eng4-what')">The Model</button>
+                <button class="inner-tab" onclick="showInner(this, 'eng4-how')">How the Best Do It</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'eng4-revops')">RevOps Lever</button>
+            </div>
+            <div id="eng4-what" class="inner-view iv-active">
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.25rem;">In a consumption model, comp drives behavior more than process. If you pay SEs on bookings, they'll close deals that don't consume. If you pay CSMs on renewal, they'll sand-bag expansion.</p>
+                <div class="stage-grid">
+                    <div>
+                        <h4>Investment Per Account</h4>
+                        <ul>
+                            <li>Cost-to-serve by tier (SE hours, PS days, Support tickets)</li>
+                            <li>Expected return (consumption growth rate)</li>
+                            <li>Payback period per engagement type</li>
+                            <li>Resource allocation framework</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Comp Architecture</h4>
+                        <ul>
+                            <li><strong>SEs:</strong> influence on consumption growth, not just bookings</li>
+                            <li><strong>Post-Sales:</strong> workload conversion rate + consumption ramp</li>
+                            <li><strong>PS:</strong> utilization + customer outcomes (not just billable hours)</li>
+                            <li><strong>Support:</strong> resolution quality + deflection rate</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Goal Setting</h4>
+                        <ul>
+                            <li>Team-level goals tied to shared metrics (NRR, TTFV, CES)</li>
+                            <li>Individual goals tied to function-specific KPIs</li>
+                            <li>Cross-functional bonus triggers (handoff quality)</li>
+                            <li>Consumption forecasts as leading indicators</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div id="eng4-how" class="inner-view">
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Snowflake</h4>
+                    <p>Pioneered consumption-based comp for field teams. Reps compensated on consumption growth, not bookings. This eliminated the &ldquo;shelf-ware&rdquo; problem where deals close but never activate. PS charged at cost to align with adoption, not revenue extraction.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Databricks</h4>
+                    <p>Hybrid model: bookings component + consumption kicker. SEs had a dual metric: technical win rate + influenced consumption growth at 6 months post-close. This forced SEs to care about implementation success, not just closing.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Twilio</h4>
+                    <p>Developer evangelism comp tied to activation metrics (first API call within 7 days). Account teams comped on usage growth, not seat expansion. Clear separation between &ldquo;land&rdquo; (new logo) and &ldquo;expand&rdquo; (consumption) comp plans.</p>
+                </div>
+            </div>
+            <div id="eng4-revops" class="inner-view">
+                <div class="fix-block">
+                    <h4>What VP RevOps Owns Here</h4>
+                    <ul>
+                        <li><strong>Comp plan design</strong> &mdash; structure, targets, accelerators aligned to consumption, not just bookings</li>
+                        <li><strong>Quota methodology</strong> &mdash; bottoms-up capacity models, not top-down revenue targets divided by headcount</li>
+                        <li><strong>Investment analysis</strong> &mdash; which accounts justify dedicated coverage, what's the ROI on PS engagements</li>
+                        <li><strong>Goal alignment</strong> &mdash; ensure team-level goals don't conflict (SE closes deal that PS can't implement)</li>
+                    </ul>
+                </div>
+                <div class="gap-banner">
+                    <h4>Vercel Gap</h4>
+                    <p>David explicitly said: &ldquo;Moving to consumption-based comp.&rdquo; But can't track consumption curves yet. No infrastructure to tie comp to consumption outcomes. Current strategy ops is execution-focused, not designing these frameworks.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- Engine Layer 5: Intelligence & Feedback -->
+        <div class="stage-header" onclick="toggleStage(this)" style="border-left: 3px solid var(--red);">
+            <span class="sh-badge" style="background: rgba(255, 68, 68, 0.1); color: var(--red);">Layer 5</span>
+            <span class="sh-title">Intelligence &amp; Feedback Loops</span>
+            <span class="sh-subtitle">Every output becomes an input</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'eng5-what')">The Loops</button>
+                <button class="inner-tab" onclick="showInner(this, 'eng5-how')">How the Best Do It</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'eng5-revops')">RevOps Lever</button>
+            </div>
+            <div id="eng5-what" class="inner-view iv-active">
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.25rem;">The engine is circular, not linear. Every customer interaction generates data that feeds back into demand, qualification, and product decisions.</p>
+                <div class="stage-grid">
+                    <div>
+                        <h4>Field &rarr; Product</h4>
+                        <ul>
+                            <li>SE deal-lost reasons &rarr; feature roadmap</li>
+                            <li>PS friction patterns &rarr; platform improvements</li>
+                            <li>Support ticket clusters &rarr; product fixes</li>
+                            <li>Competitive loss themes &rarr; positioning</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Customer &rarr; Demand</h4>
+                        <ul>
+                            <li>Expansion signals &rarr; upsell pipeline</li>
+                            <li>Declining usage &rarr; save motions</li>
+                            <li>Success stories &rarr; case studies &rarr; inbound</li>
+                            <li>Referrals &rarr; new pipeline</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Data &rarr; Strategy</h4>
+                        <ul>
+                            <li>Consumption patterns &rarr; pricing decisions</li>
+                            <li>Cost-to-serve &rarr; segmentation changes</li>
+                            <li>Win/loss analysis &rarr; ICP refinement</li>
+                            <li>Territory performance &rarr; rebalancing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div id="eng5-how" class="inner-view">
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Databricks</h4>
+                    <p>Product/Engineering interlocks built into the Field Engineering org. David had deep architect teams that served as the bridge between field signals and product roadmap. Structured quarterly field intelligence briefs that went directly to product leadership.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Datadog</h4>
+                    <p>Support ticket patterns auto-classified and routed to product teams. Feature request volume weighted by ARR. Field teams see when their feedback ships &mdash; closed-loop system that maintains trust.</p>
+                </div>
+                <div class="fix-block" style="background: var(--accent-soft); border-color: rgba(0, 112, 243, 0.2);">
+                    <h4 style="color: var(--accent);">Snowflake</h4>
+                    <p>Consumption data feeds back into territory design. High-consumption verticals get dedicated coverage. Low-consumption segments trigger product investigation. The data model IS the strategy engine.</p>
+                </div>
+            </div>
+            <div id="eng5-revops" class="inner-view">
+                <div class="fix-block">
+                    <h4>What VP RevOps Owns Here</h4>
+                    <ul>
+                        <li><strong>Field intelligence synthesis</strong> &mdash; aggregate signals from all 5 teams into actionable briefs</li>
+                        <li><strong>Closed-loop tracking</strong> &mdash; field knows when their feedback impacts product</li>
+                        <li><strong>Consumption-to-strategy pipeline</strong> &mdash; usage patterns inform pricing, segmentation, territory decisions</li>
+                        <li><strong>Competitive intel infrastructure</strong> &mdash; systematic capture of win/loss data, not anecdotal</li>
+                    </ul>
+                </div>
+                <div class="gap-banner">
+                    <h4>Vercel Gap</h4>
+                    <p>David asked: &ldquo;How do I synthesize issues and blockers for customers and prioritize roadmap?&rdquo; No system for it. Product feedback is anecdotal. Win/loss analysis is informal. Competitive intel isn't systematized.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary: What RevOps Owns vs. Influences -->
+        <h3 class="sub-header" style="margin-top: 2rem;">VP RevOps: Own vs. Influence</h3>
+
+        <div class="card-grid">
+            <div class="card" style="border-top: 2px solid var(--green);">
+                <div class="card-label" style="color: var(--green);">Own Directly</div>
+                <h3>The Operating System</h3>
+                <ul>
+                    <li>Data model &amp; systems architecture</li>
+                    <li>Handoff protocols &amp; process design</li>
+                    <li>Comp plan structure &amp; quota methodology</li>
+                    <li>Forecasting &amp; consumption analytics</li>
+                    <li>Territory design &amp; capacity modeling</li>
+                    <li>Engagement model thresholds</li>
+                    <li>GTM Engineering direction</li>
+                </ul>
+            </div>
+            <div class="card" style="border-top: 2px solid var(--yellow);">
+                <div class="card-label" style="color: var(--yellow);">Influence</div>
+                <h3>Strategic Decisions</h3>
+                <ul>
+                    <li>PQL/PQA model (with Product &amp; Marketing)</li>
+                    <li>Pricing strategy (with Finance &amp; Product)</li>
+                    <li>Field-to-Product feedback (with Product/Eng)</li>
+                    <li>ICP refinement (with Marketing)</li>
+                    <li>Hiring plans (with David)</li>
+                    <li>Competitive positioning (with Marketing)</li>
+                    <li>Product roadmap priorities (with Product)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="callout" style="margin-top: 1.5rem;">
+            <h3>Why This Matters for David</h3>
+            <p>David said he wants a <strong>thought partner</strong>, not an executor. The commercial engine view shows you understand the full machine &mdash; not just the field engineering piece. Every layer has a RevOps lever. The VP RevOps doesn't run the teams, but the <strong>system they build determines whether those teams function as one unit or five silos</strong>.</p>
+            <p style="margin-top: 0.75rem;"><em>&ldquo;I want somebody that is going to figure this out, make the trade-offs, understand what's automated vs. what needs human accountability.&rdquo;</em> &mdash; David</p>
+        </div>
+    </div>
+
+    <!-- VIEW 2: FIELD ENGINEERING DEEP DIVE (Interactive Stages) -->
+    <div id="jv-stages" class="journey-view">
+
+        <!-- Org Chart (compact) -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 2rem;">
+            <div style="text-align: center;">
+                <span style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;">COO: Jeanne DeWitt Grosser (ex-Stripe CBO)</span>
+                <span style="color: var(--text-muted); margin: 0 0.5rem;">&rarr;</span>
+                <span style="font-size: 0.6875rem; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">VP Field Engineering: David Totten (ex-Databricks)</span>
+            </div>
+        </div>
+
+        <p style="color: var(--text-secondary); font-size: 0.9375rem; margin-bottom: 0.5rem;">This is <strong>Layer 3</strong> of the Commercial Engine &mdash; zoomed in. Click each stage to explore how it works today, where it breaks, and the fix.</p>
+        <p style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1.5rem;">David's org runs 5 teams. A customer touches all of them. Each one has different needs, questions, and gaps.</p>
+
+        <!-- STAGE 1: Sales Engineering -->
+        <div class="stage-header" onclick="toggleStage(this)">
+            <span class="sh-badge" style="background: rgba(0, 200, 83, 0.1); color: var(--green);">Stage 1 &bull; Pre-Sale</span>
+            <span class="sh-title">Sales Engineering</span>
+            <span class="sh-subtitle">Technical validation, POC, demo</span>
+            <span class="sh-arrow">&rsaquo;</span>
+
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'se-today')">How It Works</button>
+                <button class="inner-tab it-breaks" onclick="showInner(this, 'se-breaks')">Where It Breaks</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'se-fix')">The Fix</button>
+            </div>
+            <div id="se-today" class="inner-view iv-active">
+                <div class="stage-grid">
+                    <div>
+                        <h4>Customer Experience</h4>
+                        <p>Customer sees a technical demo, runs a POC, gets validation that Vercel solves their problem. SE explains how the solution works and why they should try it.</p>
+                    </div>
+                    <div>
+                        <h4>What the Team Needs</h4>
+                        <ul>
+                            <li>Customer's current stack, workloads, and migration complexity</li>
+                            <li>Competitive intel (who else is being evaluated)</li>
+                            <li>Usage signals from PLG (what they've already deployed)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Key Questions</h4>
+                        <ul>
+                            <li>Did this drive revenue or faster consumption?</li>
+                            <li>On what workloads?</li>
+                            <li>If it didn't progress, why not?</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="stage-quote" style="background: rgba(0, 200, 83, 0.05); border-left: 3px solid var(--green);">&ldquo;Binary outcome: deal progresses OR product feedback. Both are valuable &mdash; but only one gets tracked today.&rdquo;</div>
+            </div>
+            <div id="se-breaks" class="inner-view">
+                <div class="gap-banner">
+                    <h4>No Visibility Into SE Activity</h4>
+                    <div class="gap-quote">&ldquo;I want to know every quarter: who did you meet with? Which customers? What wins? Did you create revenue? Did you drive faster consumption? On what workloads?&rdquo;</div>
+                    <p>No mechanism for accountability. Not mandating hard-mapping, but needs <em>some</em> way to track outcomes. Current strategy ops is &ldquo;very much execution&rdquo; &mdash; needs a strategic thought partner.</p>
+                </div>
+                <div class="gap-banner">
+                    <h4>Product Feedback Loop Is Broken</h4>
+                    <div class="gap-quote">&ldquo;How do I synthesize issues and blockers for customers and prioritize roadmap?&rdquo;</div>
+                    <p>SEs get two outcomes: deal progresses OR feedback on why not. No structured process turns &ldquo;why not&rdquo; into roadmap input.</p>
+                </div>
+            </div>
+            <div id="se-fix" class="inner-view">
+                <div class="fix-block">
+                    <h4>SE Activity Tracking &mdash; Automated, Not Manual</h4>
+                    <ul>
+                        <li>Call transcripts auto-parsed into CRM fields (GTM Engineering builds, RevOps directs)</li>
+                        <li>Deal sentiment scoring from conversation patterns &mdash; no manual Salesforce updates</li>
+                        <li>Quarterly SE outcome reports generated automatically: accounts touched, revenue influenced, consumption driven</li>
+                    </ul>
+                </div>
+                <div class="fix-block">
+                    <h4>Structured Field-to-Product Feedback</h4>
+                    <ul>
+                        <li>SE deal-lost reasons tagged by category (pricing, feature gap, compliance, competition)</li>
+                        <li>Monthly field intelligence brief auto-compiled for Product/Eng</li>
+                        <li>Closed-loop: field knows when their feedback ships</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- STAGE 2: Post-Sales -->
+        <div class="stage-header" onclick="toggleStage(this)">
+            <span class="sh-badge" style="background: rgba(245, 166, 35, 0.1); color: var(--yellow);">Stage 2 &bull; Post-Sale</span>
+            <span class="sh-title">Post-Sales (Migration &amp; Conversion)</span>
+            <span class="sh-subtitle">Migrate &amp; convert workloads</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'ps2-today')">How It Works</button>
+                <button class="inner-tab it-breaks" onclick="showInner(this, 'ps2-breaks')">Where It Breaks</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'ps2-fix')">The Fix</button>
+            </div>
+            <div id="ps2-today" class="inner-view iv-active">
+                <div class="stage-grid">
+                    <div>
+                        <h4>Customer Experience</h4>
+                        <p>Customer has committed. Now they need their applications actually moved onto Vercel. This team converts workloads and drives initial adoption.</p>
+                    </div>
+                    <div>
+                        <h4>What the Team Needs</h4>
+                        <ul>
+                            <li>Full context from SE: what was promised, what was demo'd, technical blockers</li>
+                            <li>Customer's migration priority and timeline</li>
+                            <li>Consumption targets tied to the commercial agreement</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Key Questions</h4>
+                        <ul>
+                            <li>How many workloads were converted vs. committed?</li>
+                            <li>What's the consumption ramp curve?</li>
+                            <li>When does PS need to step in?</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="stage-quote" style="background: rgba(245, 166, 35, 0.05); border-left: 3px solid var(--yellow);">&ldquo;Customers gave us a commitment, now convert those applications into Vercel.&rdquo; &mdash; David</div>
+            </div>
+            <div id="ps2-breaks" class="inner-view">
+                <div class="gap-banner">
+                    <h4>No Handoff Protocol from SE</h4>
+                    <div class="gap-quote">&ldquo;All the bouncing ball across the different teams&rdquo; &mdash; no single source of truth.</div>
+                    <p>Post-Sales inherits deals with no structured context. What was promised during the POC? What technical blockers were surfaced? What's the customer's actual migration priority? All of this lives in someone's head.</p>
+                </div>
+                <div class="gap-banner">
+                    <h4>Can't Track Consumption Curves</h4>
+                    <div class="gap-quote">&ldquo;Moving to consumption-based comp &mdash; can't track consumption curves yet.&rdquo;</div>
+                    <p>This team's success should be measured by consumption growth post-migration, but no tooling exists to track it. How do you know if a migration was successful if you can't see the usage curve?</p>
+                </div>
+            </div>
+            <div id="ps2-fix" class="inner-view">
+                <div class="fix-block">
+                    <h4>The Baton &mdash; SE to Post-Sales Handoff</h4>
+                    <ul>
+                        <li>Structured handoff packet: POC results, technical blockers, promises made, key contacts</li>
+                        <li>Auto-populated from call transcripts and CRM data (not a manual form)</li>
+                        <li>Stage can't advance in CRM without handoff completion</li>
+                        <li>2-week overlap period: both SE and Post-Sales are active during transition</li>
+                    </ul>
+                </div>
+                <div class="fix-block">
+                    <h4>Consumption Intelligence Layer</h4>
+                    <ul>
+                        <li>Per-account consumption curves tracking actual vs. committed usage</li>
+                        <li>Workload-level breakdown: which applications are live, which are stalled</li>
+                        <li>Automated alerts when consumption velocity declines post-migration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- STAGE 3: Professional Services -->
+        <div class="stage-header" onclick="toggleStage(this)">
+            <span class="sh-badge" style="background: rgba(121, 40, 202, 0.1); color: var(--purple);">Stage 3 &bull; Implementation</span>
+            <span class="sh-title">Professional Services</span>
+            <span class="sh-subtitle">Hands-on code &amp; engineering</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'ps3-today')">How It Works</button>
+                <button class="inner-tab it-breaks" onclick="showInner(this, 'ps3-breaks')">Where It Breaks</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'ps3-fix')">The Fix</button>
+            </div>
+            <div id="ps3-today" class="inner-view iv-active">
+                <div class="stage-grid">
+                    <div>
+                        <h4>Customer Experience</h4>
+                        <p>Customer's engineers need hands-on help. PS writes code alongside them, handles complex migrations, and builds custom integrations.</p>
+                    </div>
+                    <div>
+                        <h4>What the Team Needs</h4>
+                        <ul>
+                            <li>Clear scope: what Post-Sales already completed vs. what's left</li>
+                            <li>Customer's internal engineering capacity and skill level</li>
+                            <li>SOW clarity (profit center or adoption accelerator?)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Key Questions</h4>
+                        <ul>
+                            <li>What patterns/learnings should feed back to product?</li>
+                            <li>What documentation gaps keep recurring?</li>
+                            <li>How do we hand off to Support without losing context?</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="stage-quote" style="background: rgba(121, 40, 202, 0.05); border-left: 3px solid var(--purple);">&ldquo;Support for engineers needing help doing the work.&rdquo; &mdash; David</div>
+            </div>
+            <div id="ps3-breaks" class="inner-view">
+                <div class="gap-banner">
+                    <h4>Migration/PS Boundary Unclear</h4>
+                    <div class="gap-quote">&ldquo;We do a really poor ass job at that today.&rdquo;</div>
+                    <p>Where does Post-Sales migration work end and PS implementation begin? No clear trigger, no scoping framework. Customers experience confusion about who owns what.</p>
+                </div>
+                <div class="gap-banner">
+                    <h4>PS Learnings Don't Feed Back</h4>
+                    <div class="gap-quote">&ldquo;How do I synthesize issues and blockers for customers and prioritize roadmap?&rdquo;</div>
+                    <p>PS encounters the deepest technical friction (custom integrations, edge cases, platform limits). These patterns should be the richest product input &mdash; but no structured process captures them.</p>
+                </div>
+            </div>
+            <div id="ps3-fix" class="inner-view">
+                <div class="fix-block">
+                    <h4>Post-Sales &rarr; PS Handoff: Complexity Scoring</h4>
+                    <ul>
+                        <li>Standardized complexity rating: Low (self-serve docs), Medium (guided migration), High (PS engagement)</li>
+                        <li>Auto-trigger PS engagement when complexity exceeds threshold</li>
+                        <li>SOW templates pre-populated from migration context</li>
+                    </ul>
+                </div>
+                <div class="fix-block">
+                    <h4>Implementation Pattern Library</h4>
+                    <ul>
+                        <li>Every PS engagement produces a pattern doc: what was built, what was hard, what should be productized</li>
+                        <li>Quarterly synthesis: top 10 implementation friction points &rarr; Product/Eng</li>
+                        <li>Revenue-weighted priority queue: patterns from highest-ARR accounts get prioritized</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- STAGE 4: Customer Support -->
+        <div class="stage-header" onclick="toggleStage(this)">
+            <span class="sh-badge" style="background: rgba(255, 68, 68, 0.1); color: var(--red);">Stage 4 &bull; Ongoing</span>
+            <span class="sh-title">Customer Support</span>
+            <span class="sh-subtitle">Troubleshooting &amp; resolution</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'cs-today')">How It Works</button>
+                <button class="inner-tab it-breaks" onclick="showInner(this, 'cs-breaks')">Where It Breaks</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'cs-fix')">The Fix</button>
+            </div>
+            <div id="cs-today" class="inner-view iv-active">
+                <div class="stage-grid">
+                    <div>
+                        <h4>Customer Experience</h4>
+                        <p>Customer is live. When things break or they hit limits, Support responds. Range varies wildly &mdash; from basic troubleshooting to deep architectural guidance.</p>
+                    </div>
+                    <div>
+                        <h4>What the Team Needs</h4>
+                        <ul>
+                            <li>Full customer history: what was implemented, what's custom, known issues</li>
+                            <li>Escalation paths that connect back to PS and Post-Sales</li>
+                            <li>Consumption health signals (is usage growing or declining?)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Key Questions</h4>
+                        <ul>
+                            <li>Which tickets signal churn risk vs. growth opportunity?</li>
+                            <li>What product gaps are causing repeat tickets?</li>
+                            <li>When should a ticket trigger an upsell vs. a save motion?</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="stage-quote" style="background: rgba(255, 68, 68, 0.05); border-left: 3px solid var(--red);">&ldquo;Sometimes basic troubleshooting, sometimes deep vision work.&rdquo; &mdash; David</div>
+            </div>
+            <div id="cs-breaks" class="inner-view">
+                <div class="gap-banner">
+                    <h4>PS Context Doesn't Pass Down</h4>
+                    <div class="gap-quote">&ldquo;All the bouncing ball across the different teams.&rdquo;</div>
+                    <p>Support handles tickets without knowing what PS built, what's custom, or what's a known limitation. Every escalation starts from scratch.</p>
+                </div>
+                <div class="gap-banner">
+                    <h4>Support Signals Don't Flow Upstream</h4>
+                    <div class="gap-quote">&ldquo;I don't want my team spending all day long updating Salesforce.&rdquo;</div>
+                    <p>Ticket patterns reveal product gaps, churn risk, and expansion signals. But this data stays in the ticketing system &mdash; disconnected from the customer record and from Product.</p>
+                </div>
+            </div>
+            <div id="cs-fix" class="inner-view">
+                <div class="fix-block">
+                    <h4>PS &rarr; Support Handoff: Customer Context Card</h4>
+                    <ul>
+                        <li>Implementation summary auto-attached to the customer record: what was built, custom configs, known issues</li>
+                        <li>Escalation paths pre-mapped: which PS engineer worked on this account, what Shared Technical Services can help</li>
+                        <li>Consumption health visible in every ticket: is this a growing account or a declining one?</li>
+                    </ul>
+                </div>
+                <div class="fix-block">
+                    <h4>Support &rarr; Intelligence Pipeline</h4>
+                    <ul>
+                        <li>Auto-tag tickets by category: bug, feature gap, documentation issue, competitive mention</li>
+                        <li>Monthly top-10 issue clustering feeds directly to Product</li>
+                        <li>Declining-usage + rising-ticket-volume = churn risk alert to CS/TAM</li>
+                        <li>Rising-usage + feature-request = expansion signal to Sales</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector">&darr;</div>
+
+        <!-- STAGE 5: Shared Technical Services -->
+        <div class="stage-header" onclick="toggleStage(this)" style="border-left: 3px solid var(--accent);">
+            <span class="sh-badge" style="background: var(--accent-soft); color: var(--accent);">Stage 5 &bull; Horizontal Layer</span>
+            <span class="sh-title">Shared Technical Services</span>
+            <span class="sh-subtitle">The acceleration layer David built at Databricks</span>
+            <span class="sh-arrow">&rsaquo;</span>
+        </div>
+        <div class="stage-body">
+            <div class="inner-tabs">
+                <button class="inner-tab it-active" onclick="showInner(this, 'sts-today')">The Opportunity</button>
+                <button class="inner-tab it-breaks" onclick="showInner(this, 'sts-breaks')">What's Missing</button>
+                <button class="inner-tab it-fix" onclick="showInner(this, 'sts-fix')">The Charter</button>
+            </div>
+            <div id="sts-today" class="inner-view iv-active">
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.25rem;">This isn't just another team. At Databricks, David built the equivalent function under &ldquo;Strategy/Scale&rdquo; &mdash; it was the operating model layer that let Field Engineering scale from $3B to $5B+ ARR. The other 4 teams are vertical (they own a stage). STS is horizontal (it makes every stage better).</p>
+                <div class="stage-grid">
+                    <div>
+                        <h4>What It Should Be</h4>
+                        <p>The team that compounds expertise across the org. Every SE engagement, every PS implementation, every Support escalation generates knowledge. Without STS, that knowledge stays in one person's head. With STS, it becomes a reusable asset.</p>
+                    </div>
+                    <div>
+                        <h4>The Databricks Playbook</h4>
+                        <ul>
+                            <li>Deep architect teams specialized by vertical (FSI, Retail, Healthcare)</li>
+                            <li>Pre-to-post SA continuity &mdash; workload roadmaps passed from pre-sales to delivery</li>
+                            <li>Product/Eng interlock built into the FE org</li>
+                            <li>Strategy/Scale function designed capacity, territories, engagement models</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Why It Accelerates Revenue</h4>
+                        <ul>
+                            <li>SEs close faster when they have vertical expertise and reusable architectures</li>
+                            <li>PS implements faster when patterns are documented and shared</li>
+                            <li>Support resolves faster when escalation paths and context exist</li>
+                            <li>Product ships better when field signals are structured, not anecdotal</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="stage-quote" style="background: var(--accent-soft); border-left: 3px solid var(--accent);">At Databricks, SAs were verticalized and made commercial contributors &mdash; they identified new workloads, architected solutions, and directly drove expansion. STS is the function that enables this at scale.</div>
+            </div>
+            <div id="sts-breaks" class="inner-view">
+                <div class="gap-banner">
+                    <h4>No Charter, No Scope, No Metrics</h4>
+                    <div class="gap-quote">&ldquo;There's not a lot of us out there.&rdquo;</div>
+                    <p>The team exists but has no defined operating model. No engagement triggers from the other 4 customer-facing teams. No way to measure impact. People don't know when to pull STS in or what to expect when they do.</p>
+                </div>
+                <div class="gap-banner">
+                    <h4>No Vertical Specialization</h4>
+                    <p>Vercel's customer base spans e-commerce, SaaS platforms, media/content, AI applications, and enterprise portals. Each has radically different architecture needs, deployment patterns, and buying motions. Today, every SE and PS engineer is a generalist. No one goes deep on any vertical.</p>
+                </div>
+                <div class="gap-banner">
+                    <h4>Product/Eng Interlock Doesn't Exist</h4>
+                    <div class="gap-quote">&ldquo;How do I synthesize issues and blockers for customers and prioritize roadmap?&rdquo;</div>
+                    <p>Field teams surface platform gaps every day &mdash; missing features, edge cases, performance limits. None of this reaches Product in a structured way. David built this interlock at Databricks. It doesn't exist at Vercel yet.</p>
+                </div>
+                <div class="gap-banner">
+                    <h4>Territory Was 1 Rep for All Software Companies</h4>
+                    <div class="gap-quote">Until Feb 1st: zero segmentation, zero prioritization.</div>
+                    <p>E-commerce accounts already on Vercel had no dedicated coverage. No capacity model. No framework for deciding which accounts justify deep technical investment vs. scaled coverage.</p>
+                </div>
+            </div>
+            <div id="sts-fix" class="inner-view">
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.25rem;">STS should own four things. Each one directly accelerates revenue.</p>
+
+                <div class="fix-block">
+                    <h4>1. Vertical Specialization &mdash; Use-Case Expertise</h4>
+                    <p style="margin-bottom: 0.75rem;">Databricks verticalized by industry (FSI, Retail, Healthcare). Vercel should verticalize by <strong>use case</strong> &mdash; it maps better to how the platform is actually used:</p>
+                    <ul>
+                        <li><strong>E-Commerce &amp; Storefronts</strong> &mdash; headless commerce, Shopify integrations, performance-critical catalog pages. Largest existing enterprise base</li>
+                        <li><strong>SaaS Platforms</strong> &mdash; multi-tenant architectures, API-heavy apps, CI/CD pipeline optimization</li>
+                        <li><strong>AI Applications</strong> &mdash; v0 integration, AI SDK usage, streaming architectures, compute-intensive workloads. Fastest-growing segment</li>
+                        <li><strong>Content &amp; Media</strong> &mdash; CMS-driven sites, ISR patterns, global edge delivery, high-traffic events</li>
+                    </ul>
+                    <p style="margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-secondary);"><strong>Revenue impact:</strong> SEs with vertical expertise win more deals (they speak the customer's language), PS implements faster (reusable patterns per use case), Support resolves faster (known issues per architecture type).</p>
+                </div>
+
+                <div class="fix-block">
+                    <h4>2. Product/Engineering Interlock</h4>
+                    <p style="margin-bottom: 0.75rem;">The structured bridge between field signals and product roadmap. This is what David built at Databricks and explicitly said is missing at Vercel.</p>
+                    <ul>
+                        <li><strong>Monthly field intelligence brief</strong> &mdash; top 10 platform friction points, weighted by ARR impact</li>
+                        <li><strong>Quarterly roadmap alignment</strong> &mdash; STS architects review upcoming features against real customer use cases</li>
+                        <li><strong>Closed-loop tracking</strong> &mdash; field teams see when their feedback ships (maintains trust and keeps the feedback coming)</li>
+                        <li><strong>Early access program</strong> &mdash; STS tests new features with strategic accounts before GA, catching issues before they hit Support</li>
+                    </ul>
+                    <p style="margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-secondary);"><strong>Revenue impact:</strong> Fewer lost deals due to product gaps. Faster feature adoption. Reduced support volume on new releases.</p>
+                </div>
+
+                <div class="fix-block">
+                    <h4>3. Technical Enablement &amp; Knowledge Compounding</h4>
+                    <p style="margin-bottom: 0.75rem;">Every customer engagement generates knowledge. STS turns that knowledge into leverage.</p>
+                    <ul>
+                        <li><strong>Architecture pattern library</strong> &mdash; reference implementations per use case (from PS engagements)</li>
+                        <li><strong>Competitive battle cards</strong> &mdash; updated with real win/loss data, not marketing positioning</li>
+                        <li><strong>Internal certification program</strong> &mdash; level up SEs, PS, and Support engineers on platform depth</li>
+                        <li><strong>Reusable POC kits</strong> &mdash; pre-built demos per vertical that SEs can customize in hours, not days</li>
+                    </ul>
+                    <p style="margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-secondary);"><strong>Revenue impact:</strong> Scales expertise without scaling headcount. An SE with a POC kit closes in 2 weeks, not 6. A PS engineer with a pattern library implements in days, not weeks.</p>
+                </div>
+
+                <div class="fix-block">
+                    <h4>4. Complex Escalation &amp; Deep Architecture</h4>
+                    <p style="margin-bottom: 0.75rem;">The highest-value, lowest-volume work. When a problem spans multiple teams or requires deep platform knowledge, STS is the escalation destination.</p>
+                    <ul>
+                        <li><strong>Multi-team escalation owner</strong> &mdash; when an issue touches SE + PS + Support + Product, STS coordinates</li>
+                        <li><strong>Architecture reviews</strong> &mdash; for strategic accounts, STS validates the design before PS builds it</li>
+                        <li><strong>Migration architect</strong> &mdash; complex migrations (multi-app, multi-region, hybrid) need a dedicated technical lead</li>
+                        <li><strong>Executive engagement</strong> &mdash; STS deep architects join strategic customer meetings alongside David</li>
+                    </ul>
+                    <p style="margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-secondary);"><strong>Revenue impact:</strong> Protects the largest accounts. A strategic account saved from churn by a deep architecture review is worth more than 50 new Pro accounts.</p>
+                </div>
+
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-top: 1.25rem;">
+                    <h4 style="font-size: 0.875rem; font-weight: 700; margin-bottom: 0.75rem;">Measuring STS Impact</h4>
+                    <div class="stage-grid">
+                        <div>
+                            <h4>Leading Indicators</h4>
+                            <ul>
+                                <li>SE win rate in accounts with STS involvement vs. without</li>
+                                <li>PS implementation time with pattern library vs. from scratch</li>
+                                <li>Support escalation resolution time with STS vs. without</li>
+                                <li>Number of field signals that reach Product roadmap</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4>Revenue Metrics</h4>
+                            <ul>
+                                <li>Consumption growth in STS-covered accounts vs. uncovered</li>
+                                <li>NRR delta: accounts with deep architecture review vs. without</li>
+                                <li>Feature adoption rate for STS early-access accounts</li>
+                                <li>Competitive win rate in verticals with specialization</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4>Efficiency Metrics</h4>
+                            <ul>
+                                <li>POC cycle time reduction (kit-based vs. custom)</li>
+                                <li>Cross-team escalation resolution time</li>
+                                <li>Knowledge reuse rate (patterns deployed across accounts)</li>
+                                <li>Enablement impact on ramp time for new hires</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="callout" style="margin-top: 1.5rem;">
+            <h3>What David Wants: A &ldquo;Commercial Operating System&rdquo;</h3>
+            <p>David used the word &ldquo;engine&rdquo; repeatedly. He wants a <strong>thought partner</strong>, not an executor. Someone who can figure out the trade-offs: what to automate vs. what needs human accountability, how to give teams space to breathe while drawing lines in the sand on outcomes.</p>
+            <p style="margin-top: 0.75rem;"><em>&ldquo;I want the team to feel encouraged and accountable to go build, to go innovate. Just knowing the outcome is either opportunities for us or a bunch of feedback we've never seen.&rdquo;</em></p>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION 3: OPERATING MODEL -->
+<div id="model" class="section">
+    <div class="section-header">
+        <h2>The Operating Model</h2>
+        <p>RevOps doesn't run the teams. It builds the operating system underneath them so they function as one unit.</p>
+    </div>
+
+    <div class="callout">
+        <h3>The Big Idea</h3>
+        <p>Handoffs are the product. They're not an administrative step between teams &mdash; they're a customer experience that directly impacts NRR. Measure them, design them, optimize them like you would any product. The operating system isn't Salesforce or Gainsight. It's the rhythm, the data model, the accountability framework, and the shared metrics that make five teams feel like one to the customer.</p>
+    </div>
+
+    <h3 class="sub-header">Handoff Protocol &mdash; "The Baton"</h3>
+
+    <p style="color: var(--text-secondary); font-size: 0.9375rem; margin-bottom: 1.5rem;">Every transition between teams follows a structured protocol. No cold handoffs. No lost context.</p>
+
+    <div class="card-grid">
+        <div class="card">
+            <h3>What Transfers</h3>
+            <ul>
+                <li><strong>Customer context</strong> &mdash; who they are, what they bought, why</li>
+                <li><strong>Success criteria</strong> &mdash; what "success" looks like in the customer's words</li>
+                <li><strong>Technical environment</strong> &mdash; stack, integrations, constraints</li>
+                <li><strong>Key contacts &amp; politics</strong> &mdash; decision maker, champion, detractor, technical lead</li>
+                <li><strong>Open items</strong> &mdash; unresolved questions, known risks, commitments made</li>
+                <li><strong>Timeline</strong> &mdash; critical dates, go-live targets, renewal date</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>How It Executes</h3>
+            <ul>
+                <li><strong>Warm intro call</strong> &mdash; never a cold email. Outgoing team makes the introduction live</li>
+                <li><strong>2-week overlap</strong> &mdash; both teams are active during transition</li>
+                <li><strong>Customer survey</strong> &mdash; handoff quality measured 1 week after transition</li>
+                <li><strong>Completion tracking</strong> &mdash; handoff completion rate is a team-level KPI</li>
+                <li><strong>Automated triggers</strong> &mdash; system-enforced steps, not doc-driven process</li>
+                <li><strong>Feedback loop</strong> &mdash; monthly review of handoff quality scores</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3 class="sub-header">Role Architecture: TAM vs. TPM</h3>
+
+    <p style="color: var(--text-secondary); font-size: 0.9375rem; margin-bottom: 1.5rem;">A common question in Field Engineering design: do you need Technical Account Managers, Technical Program Managers, or both?</p>
+
+    <div class="compare-grid">
+        <div class="cg-header">Dimension</div>
+        <div class="cg-header">TAM (Technical Account Manager)</div>
+        <div class="cg-header">TPM (Technical Program Manager)</div>
+
+        <div class="cg-cell">Focus</div>
+        <div class="cg-cell">Relationship &mdash; owns the ongoing customer partnership</div>
+        <div class="cg-cell">Delivery &mdash; owns cross-functional execution of projects</div>
+
+        <div class="cg-cell">Time horizon</div>
+        <div class="cg-cell">Long-term (lifecycle of the account)</div>
+        <div class="cg-cell">Project-scoped (implementation to go-live)</div>
+
+        <div class="cg-cell">Primary value</div>
+        <div class="cg-cell">Trusted advisor, health monitoring, expansion identification</div>
+        <div class="cg-cell">Coordination across SE, PS, Support, and customer stakeholders</div>
+
+        <div class="cg-cell">Reports to</div>
+        <div class="cg-cell">Developer Success or Customer Success</div>
+        <div class="cg-cell">Professional Services or Program Management</div>
+
+        <div class="cg-cell">When to hire</div>
+        <div class="cg-cell">When accounts are large enough to justify a dedicated technical relationship</div>
+        <div class="cg-cell">When implementations are complex enough that handoffs need a dedicated coordinator</div>
+    </div>
+
+    <div class="callout">
+        <h3>Recommendation for Vercel</h3>
+        <p><strong>Start with TAMs, not TPMs.</strong> At Vercel's current scale with a PLG motion, the bigger gap is the ongoing technical relationship (TAM), not project coordination (TPM). TAMs become the "single thread" that persists across handoffs &mdash; they're the human solution to the context-loss problem while you build the system solution. TPMs make sense later when PS engagements get complex enough to need dedicated delivery management. The RevOps role is to define when accounts qualify for TAM coverage (tier thresholds, ARR thresholds, complexity score) and measure TAM impact on NRR.</p>
+    </div>
+
+    <h3 class="sub-header">Rhythm of Business</h3>
+
+    <div class="rhythm-block">
+        <h3>Weekly Cadence <span class="freq">Every Week</span></h3>
+        <div class="rhythm-item">
+            <span class="activity">Field Engineering Leadership Sync</span>
+            <span class="who">All 5 function leads + VP</span>
+            <span class="purpose">Cross-functional blockers, handoff issues, capacity</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">SE Pipeline Review</span>
+            <span class="who">SE managers + Sales leadership</span>
+            <span class="purpose">Technical win strategy, resource allocation</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Developer Success Metrics Review</span>
+            <span class="who">DevSuccess leads</span>
+            <span class="purpose">Adoption metrics, activation rates, self-serve funnel</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Customer Risk Review</span>
+            <span class="who">CS + Support + TAMs</span>
+            <span class="purpose">At-risk accounts, escalation patterns, intervention plans</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">PS Utilization Review</span>
+            <span class="who">PS managers</span>
+            <span class="purpose">Billable utilization, upcoming capacity, staffing</span>
+        </div>
+    </div>
+
+    <div class="rhythm-block">
+        <h3>Monthly Cadence <span class="freq">Every Month</span></h3>
+        <div class="rhythm-item">
+            <span class="activity">Field Engineering Business Review</span>
+            <span class="who">VP Field Eng + VP RevOps + CRO</span>
+            <span class="purpose">Unified metrics dashboard, cross-functional trends</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Handoff Quality Review</span>
+            <span class="who">All function leads</span>
+            <span class="purpose">Audit handoff completion rates, customer feedback on transitions</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Technical Win/Loss Analysis</span>
+            <span class="who">SE + Sales + Product</span>
+            <span class="purpose">Patterns in wins/losses, product gaps, competitive intel</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Support Trends &rarr; Product</span>
+            <span class="who">Support Eng + Product</span>
+            <span class="purpose">Recurring issues, feature requests, documentation gaps</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Customer Health Portfolio Review</span>
+            <span class="who">CS + RevOps</span>
+            <span class="purpose">Health score trends, renewal forecasts, expansion signals</span>
+        </div>
+    </div>
+
+    <div class="rhythm-block">
+        <h3>Quarterly Cadence <span class="freq">Every Quarter</span></h3>
+        <div class="rhythm-item">
+            <span class="activity">Top Account QBRs</span>
+            <span class="who">TAMs/CSMs + customer stakeholders</span>
+            <span class="purpose">Business outcomes, roadmap alignment, expansion planning</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Field Engineering Planning</span>
+            <span class="who">All function leads + VP</span>
+            <span class="purpose">Headcount, tooling, process changes, OKRs</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Cross-Functional Retrospective</span>
+            <span class="who">All 5 teams</span>
+            <span class="purpose">What's working, what's breaking, handoff improvements</span>
+        </div>
+        <div class="rhythm-item">
+            <span class="activity">Metrics Recalibration</span>
+            <span class="who">RevOps + VP Field Eng</span>
+            <span class="purpose">Are we measuring the right things? Adjust targets</span>
+        </div>
+    </div>
+
+    <h3 class="sub-header">RevOps for Field Engineering vs. Traditional Sales</h3>
+
+    <div class="compare-grid">
+        <div class="cg-header">Dimension</div>
+        <div class="cg-header">Traditional Sales RevOps</div>
+        <div class="cg-header">Field Engineering RevOps</div>
+
+        <div class="cg-cell">Primary unit of work</div>
+        <div class="cg-cell">Deal / opportunity</div>
+        <div class="cg-cell">Customer engagement / project</div>
+
+        <div class="cg-cell">Revenue model</div>
+        <div class="cg-cell">Bookings, pipeline</div>
+        <div class="cg-cell">Utilization, adoption, retention</div>
+
+        <div class="cg-cell">Forecasting</div>
+        <div class="cg-cell">Pipeline stages, close dates</div>
+        <div class="cg-cell">Renewal likelihood, expansion signals, PS capacity</div>
+
+        <div class="cg-cell">Process design</div>
+        <div class="cg-cell">Linear funnel</div>
+        <div class="cg-cell">Circular lifecycle (onboard, adopt, expand, renew)</div>
+
+        <div class="cg-cell">Tool stack</div>
+        <div class="cg-cell">CRM-centric</div>
+        <div class="cg-cell">CRM + CS platform + ticketing + project mgmt</div>
+
+        <div class="cg-cell">Data model</div>
+        <div class="cg-cell">Account &rarr; Opportunity &rarr; Activity</div>
+        <div class="cg-cell">Account &rarr; Engagement &rarr; Health Score &rarr; Timeline</div>
+
+        <div class="cg-cell">Key SLA</div>
+        <div class="cg-cell">Speed to lead, follow-up time</div>
+        <div class="cg-cell">Time to first value, resolution time, handoff completion</div>
+    </div>
+
+    <h3 class="sub-header">Technology Stack</h3>
+
+    <table class="comp-table">
+        <thead>
+            <tr>
+                <th>System</th>
+                <th>Purpose</th>
+                <th>Examples</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>CRM</td>
+                <td>Account/opportunity data, handoff triggers</td>
+                <td>Salesforce</td>
+            </tr>
+            <tr>
+                <td>CS Platform</td>
+                <td>Health scores, playbooks, unified customer timeline</td>
+                <td>Gainsight, Vitally, Planhat</td>
+            </tr>
+            <tr>
+                <td>Ticketing</td>
+                <td>Support cases, resolution tracking, SLA monitoring</td>
+                <td>Zendesk, Jira Service Management</td>
+            </tr>
+            <tr>
+                <td>PS / Project Mgmt</td>
+                <td>Engagement tracking, utilization, deliverables</td>
+                <td>Kantata, Asana</td>
+            </tr>
+            <tr>
+                <td>Knowledge Base</td>
+                <td>Technical documentation, runbooks, handoff templates</td>
+                <td>Confluence, Notion</td>
+            </tr>
+            <tr>
+                <td>Conversation Intel</td>
+                <td>Call recordings, meeting context, competitive mentions</td>
+                <td>Gong</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- SECTION: PRICING STRATEGY -->
+<div id="pricing" class="section">
+    <div class="section-header">
+        <h2>Pricing Strategy &amp; Economics</h2>
+        <p>How Vercel prices today, how competitors undercut them, and how to think about pricing as a RevOps lever.</p>
+    </div>
+
+    <h3 class="sub-header">Vercel Pricing Tiers</h3>
+
+    <div class="card-grid">
+        <div class="card" style="border-top: 2px solid var(--text-muted);">
+            <div class="card-label" style="color: var(--text-muted);">Hobby</div>
+            <h3>Free</h3>
+            <ul>
+                <li>Personal / non-commercial use only</li>
+                <li>Limited builds, bandwidth, serverless function execution</li>
+                <li>Single developer &mdash; no team features</li>
+                <li><strong>Purpose:</strong> Bottom-of-funnel acquisition. Half of indie projects on Twitter are hosted here</li>
+            </ul>
+        </div>
+        <div class="card" style="border-top: 2px solid var(--accent);">
+            <div class="card-label" style="color: var(--accent);">Pro</div>
+            <h3>$20 / seat / month</h3>
+            <ul>
+                <li>$20 usage credit included per month</li>
+                <li>1TB data transfer, 10M edge requests</li>
+                <li>Team features, preview deployments, password protection</li>
+                <li><strong>Trap:</strong> Usage overages on top of seat fee. This is where "bill shock" happens</li>
+            </ul>
+        </div>
+        <div class="card" style="border-top: 2px solid var(--green);">
+            <div class="card-label" style="color: var(--green);">Enterprise</div>
+            <h3>~$25K+ / year (custom)</h3>
+            <ul>
+                <li>Dedicated support, SLAs, SSO, audit logs</li>
+                <li>Committed use discounts for large contracts</li>
+                <li>Usage-based overages for compute, bandwidth, edge requests</li>
+                <li><strong>Gap:</strong> The jump from Pro ($240/yr/seat) to Enterprise (~$25K) is a chasm</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3 class="sub-header">Pricing Model: Hybrid (Seat + Usage)</h3>
+
+    <div class="callout">
+        <h3>The Core Tension</h3>
+        <p>Vercel's pricing is <strong>hybrid: seat-based base + usage-based overages</strong>. This creates two problems at once. Seats don't capture value from high-usage teams (a 3-person team running massive traffic pays the same base as a 3-person side project). And usage overages are unpredictable, which is the #1 complaint driving churn. 85% of SaaS companies now use hybrid pricing &mdash; the model isn't wrong, but the <strong>communication and guardrails</strong> are where Vercel struggles.</p>
+    </div>
+
+    <h3 class="sub-header">Competitive Pricing Comparison</h3>
+
+    <table class="comp-table">
+        <thead>
+            <tr>
+                <th>Platform</th>
+                <th>Free Tier</th>
+                <th>Paid Entry</th>
+                <th>Model</th>
+                <th>Key Difference</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Vercel</td>
+                <td>Yes (non-commercial)</td>
+                <td>$20/seat/mo</td>
+                <td>Seat + usage overages</td>
+                <td>Best DX, worst pricing predictability</td>
+            </tr>
+            <tr>
+                <td>Cloudflare Pages</td>
+                <td><span class="tag tag-green">Unlimited BW</span></td>
+                <td>$5/mo (Workers)</td>
+                <td>Usage-based, very cheap</td>
+                <td>4x cheaper entry, unlimited free bandwidth</td>
+            </tr>
+            <tr>
+                <td>Netlify</td>
+                <td>Yes (100GB BW)</td>
+                <td>$19/user/mo</td>
+                <td>Seat + usage overages</td>
+                <td>Similar model, slightly cheaper, less lock-in perception</td>
+            </tr>
+            <tr>
+                <td>AWS Amplify</td>
+                <td>Free tier credits (~$200)</td>
+                <td>Pay-as-you-go</td>
+                <td>Pure usage-based</td>
+                <td>40% cheaper at scale, bundles into existing AWS EDP</td>
+            </tr>
+            <tr>
+                <td>Railway</td>
+                <td>$5/mo (includes credit)</td>
+                <td>$5/mo hobby</td>
+                <td>Usage-based (compute)</td>
+                <td>Predictable usage pricing, true full-stack</td>
+            </tr>
+            <tr>
+                <td>Render</td>
+                <td>Yes (limited)</td>
+                <td>$19/mo</td>
+                <td>Instance-based + usage</td>
+                <td>Serverful model = more predictable for steady traffic</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 class="sub-header">How to Think About Pricing Strategy (RevOps Lens)</h3>
+
+    <div class="card-grid">
+        <div class="card">
+            <h3>The PLG Pricing Ladder</h3>
+            <ul>
+                <li><strong>Free &rarr; Pro:</strong> Developer falls in love with DX, team adopts, Pro is easy</li>
+                <li><strong>Pro &rarr; Enterprise:</strong> This is where it breaks. $240/yr/seat to ~$25K+ is a 100x jump</li>
+                <li>Missing: a "Growth" tier at ~$5-8K/yr that bridges the gap</li>
+                <li>RevOps role: model the conversion funnel, identify where deals stall, propose tier structure</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Usage-Based Challenges</h3>
+            <ul>
+                <li><strong>Bill shock destroys trust.</strong> A traffic spike shouldn't feel like a financial emergency</li>
+                <li>Competitors offer spending caps, alerts, and auto-scaling limits. Vercel's guardrails are weaker</li>
+                <li>Enterprise procurement hates metering complexity (Edge Requests + ISR events + function calls + CPU time)</li>
+                <li>RevOps role: build spending forecast tools, simplify metering for enterprise contracts</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Enterprise Pricing Mechanics</h3>
+            <ul>
+                <li><strong>Base platform fee</strong> covers seats, support, SLAs, SSO</li>
+                <li><strong>Committed use discounts</strong> for predictable spend &mdash; crucial for AWS EDP overlap</li>
+                <li><strong>v0 Enterprise</strong> is a new pricing lever &mdash; 50%+ of v0 revenue already from Teams/Enterprise</li>
+                <li>RevOps role: design comp plans that reward expansion, not just new logos</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <h3>The RevOps Pricing Thesis</h3>
+        <p>Vercel's moat isn't price &mdash; it's ecosystem gravity (Next.js + v0 + AI SDK). But pricing is the #1 reason customers evaluate alternatives. RevOps can't set pricing, but it <strong>can</strong> build the data infrastructure that shows where pricing friction creates churn, where expansion stalls, and where competitive losses correlate with pricing objections. That data is what makes pricing decisions evidence-based instead of gut-driven.</p>
+    </div>
+</div>
+
+<!-- SECTION 4: METRICS -->
+<div id="metrics" class="section">
+    <div class="section-header">
+        <h2>Metrics Framework</h2>
+        <p>North star metrics that unify all five teams, with team-specific indicators feeding into a single dashboard.</p>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card" style="border-color: rgba(0, 112, 243, 0.3);">
+            <div class="stat-value" style="color: var(--accent);">NRR</div>
+            <div class="stat-label">Net Revenue Retention &mdash; every team influences growth, contraction, and churn</div>
+        </div>
+        <div class="stat-card" style="border-color: rgba(0, 200, 83, 0.3);">
+            <div class="stat-value" style="color: var(--green);">TTFV</div>
+            <div class="stat-label">Time to First Value &mdash; spans SE handoff through onboarding to initial adoption</div>
+        </div>
+        <div class="stat-card" style="border-color: rgba(245, 166, 35, 0.3);">
+            <div class="stat-value" style="color: var(--yellow);">CHS</div>
+            <div class="stat-label">Customer Health Score &mdash; composite view across all five teams</div>
+        </div>
+        <div class="stat-card" style="border-color: rgba(121, 40, 202, 0.3);">
+            <div class="stat-value" style="color: var(--purple);">CES</div>
+            <div class="stat-label">Customer Effort Score &mdash; measures the seams between teams</div>
+        </div>
+    </div>
+
+    <h3 class="sub-header">Customer Health Score Model (Vercel-Specific)</h3>
+
+    <div class="health-bar-container">
+        <div class="health-row">
+            <span class="health-label">Product usage & adoption</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 30%; background: var(--accent);">30%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Support ticket volume & severity</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 20%; background: var(--red);">20%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Engagement recency</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 15%; background: var(--yellow);">15%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Contract / billing health</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 15%; background: var(--green);">15%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">NPS / CES (not CSAT)</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 10%; background: var(--purple);">10%</div>
+            </div>
+        </div>
+        <div class="health-row">
+            <span class="health-label">Community / developer activity</span>
+            <div class="health-bar-bg">
+                <div class="health-bar" style="width: 10%; background: #ff6b6b;">10%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="callout" style="background: var(--red-soft); border-color: rgba(255, 68, 68, 0.2);">
+        <h3 style="color: var(--red);">Devil's Advocate: Why Not CSAT?</h3>
+        <p>CSAT seems like the obvious satisfaction metric, but it's unreliable for enterprise Field Engineering. <strong>Response rates are 5-15%</strong> &mdash; biased toward extremes (angry or delighted). In multi-threaded enterprise relationships, "whose satisfaction?" is ambiguous &mdash; the developer using the product daily has a different experience than the VP who signed the contract. And CSAT measures a moment, not the journey.</p>
+        <p style="margin-top: 0.75rem;"><strong>Use CES (Customer Effort Score) instead as the north star.</strong> CES measures <em>friction</em> &mdash; how hard it is to get help, complete a handoff, resolve an issue. That's exactly what this operating model is designed to reduce. CSAT still works at the <strong>interaction level</strong> (per support ticket, per PS engagement) &mdash; but not as an account-level health indicator.</p>
+    </div>
+
+    <h3 class="sub-header">Team-Specific KPIs</h3>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-team">Sales Engineering</div>
+            <div class="metric-item">
+                <span class="metric-name">Technical win rate</span>
+                <span class="metric-target">Track %</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">SE-influenced pipeline</span>
+                <span class="metric-target">$ value</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">POC/eval conversion</span>
+                <span class="metric-target">Target: 60%+</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Time in technical eval</span>
+                <span class="metric-target">Reduce days</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-team">Developer Success</div>
+            <div class="metric-item">
+                <span class="metric-name">Developer activation rate</span>
+                <span class="metric-target">Signup &rarr; deploy</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Self-serve resolution rate</span>
+                <span class="metric-target">Target: 70%+</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Doc effectiveness</span>
+                <span class="metric-target">Avoidable tickets</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Community engagement</span>
+                <span class="metric-target">Not revenue-tied</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-team">Professional Services</div>
+            <div class="metric-item">
+                <span class="metric-name">Billable utilization</span>
+                <span class="metric-target">Target: 65-75%</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Time to go-live</span>
+                <span class="metric-target">Reduce days</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">PS-influenced NRR</span>
+                <span class="metric-target">PS vs non-PS</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Knowledge transfer rate</span>
+                <span class="metric-target">Target: 100%</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-team">Customer Support Engineering</div>
+            <div class="metric-item">
+                <span class="metric-name">First response time</span>
+                <span class="metric-target">By tier SLA</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">First contact resolution</span>
+                <span class="metric-target">Target: 65%+</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Escalation rate</span>
+                <span class="metric-target">Reduce %</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">Ticket deflection rate</span>
+                <span class="metric-target">Track trend</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-name">CSAT per interaction</span>
+                <span class="metric-target">Per-ticket only</span>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="sub-header">The "One Team" Dashboard</h3>
+
+    <div class="card">
+        <ul>
+            <li><strong>Customer journey funnel:</strong> Prospect &rarr; Technical Eval &rarr; Closed &rarr; Onboarding &rarr; Adopted &rarr; Expanding &rarr; Renewing</li>
+            <li><strong>Conversion rates between each stage</strong> &mdash; these ARE the handoff quality metrics</li>
+            <li><strong>Average time in each stage</strong> &mdash; identifies bottlenecks and stuck accounts</li>
+            <li><strong>Team-specific leading indicators</strong> feeding each conversion point</li>
+            <li><strong>Trailing indicators:</strong> NRR, GRR, CES, NPS segmented by account tier</li>
+        </ul>
+    </div>
+</div>
+
+<!-- SECTION 5: 90-DAY PLAN -->
+<div id="plan" class="section">
+    <div class="section-header">
+        <h2>First 90 Days</h2>
+        <p>Diagnose, design, deploy. Build the foundation before optimizing.</p>
+    </div>
+
+    <div class="plan-phases">
+        <div class="phase">
+            <div class="phase-label">Days 1&ndash;30</div>
+            <h3>Diagnose</h3>
+            <ul>
+                <li>Audit current handoff processes between all 5 teams</li>
+                <li>Map the customer journey as it actually happens (not as designed)</li>
+                <li>Interview team leads and ICs to find where context drops</li>
+                <li>Inventory existing tools and data &mdash; what's connected, what's siloed</li>
+                <li>Identify the 3 biggest points of friction customers experience</li>
+            </ul>
+        </div>
+        <div class="phase">
+            <div class="phase-label">Days 31&ndash;60</div>
+            <h3>Design</h3>
+            <ul>
+                <li>Build the unified customer health score model</li>
+                <li>Design the handoff protocol ("The Baton")</li>
+                <li>Propose the rhythm of business framework</li>
+                <li>Identify quick wins &mdash; processes fixable with existing tools</li>
+                <li>Draft the "One Team" dashboard spec</li>
+            </ul>
+        </div>
+        <div class="phase">
+            <div class="phase-label">Days 61&ndash;90</div>
+            <h3>Deploy</h3>
+            <ul>
+                <li>Implement handoff automation in existing systems</li>
+                <li>Launch the "One Team" dashboard</li>
+                <li>Run the first cross-functional retrospective</li>
+                <li>Establish baseline metrics for handoff quality</li>
+                <li>Deliver first monthly Field Engineering Business Review</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <h3>Why RevOps, Not Just Ops</h3>
+        <p>Traditional ops manages processes. RevOps connects revenue outcomes to operational inputs. For Vercel's usage-based model, Field Engineering teams directly drive revenue through adoption &mdash; not just support it. Every deployment activated, every support ticket deflected, every successful implementation is revenue. The operating system has to measure that connection and make it visible.</p>
+    </div>
+
+    <h3 class="sub-header">Competitive Intelligence as a RevOps Capability</h3>
+
+    <div class="card-grid">
+        <div class="card">
+            <h3>SE Win/Loss &rarr; Product</h3>
+            <p>Structured process for turning lost deals into product roadmap inputs. When SEs lose on pricing or backend gaps, that data flows to Product monthly &mdash; not anecdotally.</p>
+        </div>
+        <div class="card">
+            <h3>Support Tickets &rarr; Market Intel</h3>
+            <p>If customers keep asking for features competitors have, that's market intelligence. Tag and route competitive mentions from support into a quarterly competitive review.</p>
+        </div>
+        <div class="card">
+            <h3>Adoption Patterns &rarr; Positioning</h3>
+            <p>Developer Success metrics reveal which use cases are winning and which aren't. Feed this into marketing and sales enablement so the GTM message matches reality.</p>
+        </div>
+    </div>
+
+    <h3 class="sub-header" style="margin-top: 3rem;">Vercel-Specific Considerations</h3>
+
+    <div class="card-grid">
+        <div class="card">
+            <h3>Developer-First Product</h3>
+            <p>Most customers self-serve before talking to sales. The SE role is "solution architect for enterprise," not demo-driven. This changes how pipeline and SE metrics work.</p>
+        </div>
+        <div class="card">
+            <h3>Usage-Based Revenue</h3>
+            <p>Expansion is driven by product adoption, not sales motions. Field Engineering directly influences revenue by accelerating deployment velocity and broadening use cases.</p>
+        </div>
+        <div class="card">
+            <h3>Open-Source Ecosystem</h3>
+            <p>Next.js community means DevRel is a revenue input, not just brand marketing. Developer Success metrics need to capture this without corrupting the community relationship.</p>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION 6: STRATEGY BUILD -->
+<div id="strategy" class="section">
+    <div class="section-header">
+        <h2>McKinsey Strategy Build</h2>
+        <p>The Vercel Field Engineering problem decomposed into 7 structured steps &mdash; from core question to executive summary.</p>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-number">1</span>
+            <h3>Core Question Clarifier</h3>
+        </div>
+
+        <div class="quote-block">
+            How should Vercel design a unified Field Engineering operating system that connects pre-sale through post-sale technical engagement into a single commercial motion &mdash; in time to support an IPO-track company scaling from $200M to $1B+ ARR?
+        </div>
+
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 1rem 0 0.5rem; font-weight: 600;">What this is NOT about:</p>
+        <ul style="list-style: none; padding: 0;">
+            <li style="font-size: 0.8125rem; color: var(--text-secondary); padding: 0.25rem 0; padding-left: 1rem; position: relative;">
+                <span style="position: absolute; left: 0; color: var(--red);">&times;</span> A Salesforce implementation problem
+            </li>
+            <li style="font-size: 0.8125rem; color: var(--text-secondary); padding: 0.25rem 0; padding-left: 1rem; position: relative;">
+                <span style="position: absolute; left: 0; color: var(--red);">&times;</span> A headcount or hiring plan
+            </li>
+            <li style="font-size: 0.8125rem; color: var(--text-secondary); padding: 0.25rem 0; padding-left: 1rem; position: relative;">
+                <span style="position: absolute; left: 0; color: var(--red);">&times;</span> Reorganizing David's reporting lines
+            </li>
+            <li style="font-size: 0.8125rem; color: var(--text-secondary); padding: 0.25rem 0; padding-left: 1rem; position: relative;">
+                <span style="position: absolute; left: 0; color: var(--red);">&times;</span> Traditional RevOps (pipeline reporting, forecast calls)
+            </li>
+        </ul>
+
+        <div class="callout" style="margin-top: 1.25rem;">
+            <h3>The Actual Decision</h3>
+            <p>Does Vercel invest in building a bespoke, AI-native operating model for Field Engineering (aligned with Jeanne's "build, don't buy" philosophy), or layer on traditional enterprise RevOps tooling and practices?</p>
+            <p style="margin-top: 0.75rem;"><strong>The meta-question:</strong> Can you build the IPO-grade predictability investors want &mdash; while preserving the developer-first speed that got Vercel to $200M?</p>
+        </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-number">2</span>
+            <h3>MECE Breakdown</h3>
+        </div>
+
+        <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Five mutually exclusive, collectively exhaustive components. No overlaps. No gaps.</p>
+
+        <div class="card-grid">
+            <div class="card" style="border-left: 3px solid var(--accent);">
+                <div class="card-label" style="color: var(--accent);"><span class="dot" style="background: var(--accent);"></span>Bucket 1</div>
+                <h3>Cross-Team Visibility &amp; Data Architecture</h3>
+                <ul>
+                    <li>Unified customer record across 5 teams</li>
+                    <li>SE activity tracking and consumption attribution</li>
+                    <li>Shared health scoring and dashboards</li>
+                </ul>
+                <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--red); font-weight: 500;">David: "doing a really poor ass job at this"</p>
+            </div>
+            <div class="card" style="border-left: 3px solid var(--yellow);">
+                <div class="card-label" style="color: var(--yellow);"><span class="dot" style="background: var(--yellow);"></span>Bucket 2</div>
+                <h3>Handoff Design &amp; Journey Continuity</h3>
+                <ul>
+                    <li>Protocols for every team-to-team transition</li>
+                    <li>Overlap periods and context transfer</li>
+                    <li>Handoff quality measurement</li>
+                </ul>
+                <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">No formal handoff process exists today. No one owns the transition.</p>
+            </div>
+            <div class="card" style="border-left: 3px solid var(--green);">
+                <div class="card-label" style="color: var(--green);"><span class="dot" style="background: var(--green);"></span>Bucket 3</div>
+                <h3>Metrics Framework &amp; Incentive Alignment</h3>
+                <ul>
+                    <li>North star metrics: NRR, TTFV, CES</li>
+                    <li>Team-specific leading indicators</li>
+                    <li>Consumption-based comp modeling</li>
+                </ul>
+                <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">Moving commits &rarr; consumption comp. Infrastructure doesn't exist.</p>
+            </div>
+            <div class="card" style="border-left: 3px solid var(--purple);">
+                <div class="card-label" style="color: var(--purple);"><span class="dot" style="background: var(--purple);"></span>Bucket 4</div>
+                <h3>Operating Rhythm &amp; Governance</h3>
+                <ul>
+                    <li>Weekly / monthly / quarterly review cadence</li>
+                    <li>Escalation paths and cross-functional retros</li>
+                    <li>Capacity planning across all 5 teams</li>
+                </ul>
+                <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">David wants a "rhythm of business" &mdash; not ad hoc coordination.</p>
+            </div>
+            <div class="card" style="border-left: 3px solid #ff6b6b;">
+                <div class="card-label" style="color: #ff6b6b;"><span class="dot" style="background: #ff6b6b;"></span>Bucket 5</div>
+                <h3>Automation &amp; AI-Native Operations</h3>
+                <ul>
+                    <li>CRM automation (transcripts &rarr; Salesforce)</li>
+                    <li>Product feedback loops (field &rarr; roadmap)</li>
+                    <li>AI-assisted routing and engagement tiering</li>
+                </ul>
+                <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">Jeanne replaced 10 SDRs with 1 human + AI. She expects ops to be AI-native too.</p>
+            </div>
+        </div>
+
+        <div class="callout" style="margin-top: 0.5rem;">
+            <h3>Sequencing Matters</h3>
+            <p>You can't fix handoffs (2) without visibility (1). You can't align incentives (3) without measuring handoffs (2). You can't sustain any of it without rhythm (4) and automation (5). <strong>Build in order: 1 &rarr; 2 &rarr; 3 &rarr; 4 &rarr; 5.</strong></p>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-number">3</span>
+            <h3>Hypothesis Tree</h3>
+        </div>
+
+        <div class="hypothesis-card">
+            <h4>A: The primary problem is a data and tooling gap</h4>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6;">The 5 teams can't function as one because they literally can't see each other's work. SE activity is invisible. Customer context lives in different systems. This is a data architecture problem first.</p>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; margin-top: 0.5rem;"><strong style="color: var(--green);">Confirms:</strong> Teams want to coordinate but can't access data. Customer complaints center on "I already told your colleague." Quick wins from connecting tools produce immediate improvement.</p>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; margin-top: 0.25rem;"><strong style="color: var(--red);">Rejects:</strong> Teams have shared data but don't use it. Cultural issues override data availability.</p>
+            <span class="prob prob-high">Probability: High</span>
+        </div>
+
+        <div class="hypothesis-card">
+            <h4>B: The primary problem is incentive misalignment</h4>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6;">Five teams with separate metrics and no shared accountability will naturally optimize for their own function. Data won't fix a structural incentive problem.</p>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; margin-top: 0.5rem;"><strong style="color: var(--green);">Confirms:</strong> Teams resist sharing context because it doesn't benefit their metrics. "Not my job" culture at boundaries.</p>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; margin-top: 0.25rem;"><strong style="color: var(--red);">Rejects:</strong> Teams are collaborative but flying blind. Shared metrics naturally drive coordination.</p>
+            <span class="prob prob-med">Probability: Medium</span>
+        </div>
+
+        <div class="hypothesis-card">
+            <h4>C: Vercel doesn't know what "good" looks like at this stage</h4>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6;">Vercel just hired enterprise-grade leadership in the last year. The operating model needs to be designed from first principles &mdash; not copied from Databricks or Datadog &mdash; because Vercel's developer-first, usage-based, PLG-to-enterprise motion is unique.</p>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; margin-top: 0.5rem;"><strong style="color: var(--green);">Confirms:</strong> David's homework is "figure out the model." Shared Technical Services team role is undefined. Jeanne explicitly rejects off-the-shelf approaches.</p>
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6; margin-top: 0.25rem;"><strong style="color: var(--red);">Rejects:</strong> Databricks model translates cleanly. David already has the model and just needs execution.</p>
+            <span class="prob prob-high">Probability: High</span>
+        </div>
+
+        <div class="callout" style="margin-top: 0.5rem;">
+            <h3>Synthesis: A + C Combined</h3>
+            <p>The <strong>immediate pain</strong> is data and visibility (Hypothesis A). The <strong>strategic opportunity</strong> is designing the right model from first principles (Hypothesis C). The VP RevOps needs to solve A fast for credibility, while designing for C for long-term impact. Hypothesis B becomes the risk to manage as the company scales.</p>
+        </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-number">4</span>
+            <h3>Assumption Exposure</h3>
+        </div>
+
+        <table class="assumption-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 35%;">Assumption</th>
+                    <th style="width: 20%;">Status</th>
+                    <th style="width: 40%;">Risk if Wrong</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="color: var(--text);">1</td>
+                    <td>David wants a strategic thought partner, not an executor</td>
+                    <td><span class="tag tag-green">Verified</span></td>
+                    <td>Low &mdash; confirmed on call</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">2</td>
+                    <td>This role is separate from Renee Kelley's sales-side RevOps</td>
+                    <td><span class="tag tag-yellow">Unverified</span></td>
+                    <td style="color: var(--red); font-weight: 500;">HIGH &mdash; scope ambiguity from Day 1</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">3</td>
+                    <td>Jeanne's "build, don't buy" applies to Field Eng ops</td>
+                    <td><span class="tag tag-yellow">Unverified</span></td>
+                    <td>Medium &mdash; "architect" framing may overshoot</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">4</td>
+                    <td>The 5 teams are willing to adopt shared processes</td>
+                    <td><span class="tag tag-yellow">Unverified</span></td>
+                    <td>Medium &mdash; change management is the hardest part</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">5</td>
+                    <td>Vercel's data infrastructure can support unified metrics</td>
+                    <td><span class="tag tag-yellow">Unverified</span></td>
+                    <td style="color: var(--red); font-weight: 500;">HIGH &mdash; health score is aspirational if data doesn't exist</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">6</td>
+                    <td>Consumption-based comp is the right model for Field Eng</td>
+                    <td><span class="tag tag-yellow">Unverified</span></td>
+                    <td>Medium &mdash; can create perverse incentives</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">7</td>
+                    <td>IPO timeline is 2027</td>
+                    <td><span class="tag tag-red">Dangerous</span></td>
+                    <td style="color: var(--red); font-weight: 500;">HIGH &mdash; if accelerated, timeline compresses dramatically</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">8</td>
+                    <td>David has org authority for cross-team changes</td>
+                    <td><span class="tag tag-yellow">Unverified</span></td>
+                    <td>Medium &mdash; needing 3 leaders' approval kills velocity</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">9</td>
+                    <td>"Commercial operating system" is the right frame</td>
+                    <td><span class="tag tag-green">Verified</span></td>
+                    <td>Low &mdash; David loved it on call</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text);">10</td>
+                    <td>Meaningful infrastructure in first 90 days</td>
+                    <td><span class="tag tag-red">Dangerous</span></td>
+                    <td style="color: var(--red); font-weight: 500;">HIGH &mdash; overpromising speed = fastest way to lose credibility</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="danger-callout">
+            <h4>Three Most Dangerous Assumptions</h4>
+            <p><strong>1. Role overlap with Renee (#2)</strong> &mdash; If unclear, you spend months navigating org politics instead of building. Must clarify before accepting the role.</p>
+            <p style="margin-top: 0.5rem;"><strong>2. Data infrastructure readiness (#5)</strong> &mdash; Every metric, health score, and dashboard depends on data that may not exist yet. Assess in first 2 weeks.</p>
+            <p style="margin-top: 0.5rem;"><strong>3. 90-day delivery expectations (#10)</strong> &mdash; If David expects a functioning system in 90 days and you deliver a diagnostic + design, there's a mismatch. Align upfront.</p>
+        </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-number">5</span>
+            <h3>Diagnosis Pressure Test</h3>
+        </div>
+
+        <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Five challenges to pressure-test the problem framing before walking into the room.</p>
+
+        <div class="card-grid" style="grid-template-columns: 1fr;">
+            <div class="card" style="border-left: 3px solid var(--red);">
+                <h3>1. Are you solving the right problem?</h3>
+                <p>David describes a handoff and visibility problem. But Vercel just hired an entirely new GTM leadership team in 2025. The real problem might be that <strong>Vercel doesn't have a mature GTM operating model at all</strong> &mdash; and Field Engineering is one slice of a company-wide transformation. If you build a beautiful system for David's 5 teams but it doesn't integrate with Nick's sales org or Jeanne's GTM Engineering function, you've built a sophisticated silo.</p>
+                <p style="margin-top: 0.75rem; color: var(--accent); font-weight: 500; font-size: 0.8125rem;">Ask David: "How does this role connect to Renee's org and the broader GTM operating model?"</p>
+            </div>
+            <div class="card" style="border-left: 3px solid var(--yellow);">
+                <h3>2. Is the "commercial operating system" frame too big?</h3>
+                <p>VP RevOps for Field Engineering is a defined scope &mdash; 5 teams, one leader, specific problems. If you walk in trying to architect the company-wide operating system, you may overstep and create friction with Renee, Nick's ops team, and Jeanne's GTM Engineering function. Build a module that connects to the larger system &mdash; not a replacement for it.</p>
+            </div>
+            <div class="card" style="border-left: 3px solid var(--yellow);">
+                <h3>3. The Databricks playbook might not translate</h3>
+                <p>David comes from Databricks ($5.4B ARR, verticalized SAs, consumption-native from Day 1). Vercel is at $200M, not verticalized, and transitioning FROM commits TO consumption. <strong>The expansion unit at Vercel is unclear.</strong> At Databricks it was workloads. At Datadog it's products. At Vercel &mdash; is it deployments? Bandwidth? v0 credits? Teams? Projects?</p>
+                <p style="margin-top: 0.75rem; color: var(--accent); font-weight: 500; font-size: 0.8125rem;">Ask David: "What does a successful expansion look like at Vercel? What's the unit of growth?"</p>
+            </div>
+            <div class="card" style="border-left: 3px solid var(--purple);">
+                <h3>4. You might be designing for a company that doesn't exist yet</h3>
+                <p>Vercel hired enterprise-grade leadership to transform from PLG startup to IPO-ready company. But the culture, product, pricing, and customer base are still startup-shaped. <strong>Overbuilding for IPO readiness alienates the existing team. Underbuilding disappoints the board.</strong></p>
+            </div>
+            <div class="card" style="border-left: 3px solid var(--red);">
+                <h3>5. What are you NOT seeing?</h3>
+                <ul>
+                    <li><strong>GTM Engineering overlap:</strong> If they're building operational tooling, your role might be partially automated before you start</li>
+                    <li><strong>"Shared Technical Services" team:</strong> Role is undefined. Is it doing what you'd be doing?</li>
+                    <li><strong>Developer community dynamics:</strong> If sentiment turns (pricing backlash, lock-in concerns), the entire Field Engineering model sits on a shrinking top-of-funnel</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-number">6</span>
+            <h3>Stakeholder Impact Map</h3>
+        </div>
+
+        <h4 class="sub-header" style="margin-top: 0; font-size: 0.875rem;">Must Change Behavior</h4>
+        <div class="stakeholder-grid">
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--accent);"></span> SE Team</h4>
+                <ul>
+                    <li><strong>Now:</strong> Operate in pre-sale bubble, activity invisible</li>
+                    <li><strong>Need:</strong> Log activity in shared systems, participate in handoff protocols</li>
+                    <li><strong>Incentive:</strong> Their work actually leads to successful customers, not wasted POCs</li>
+                </ul>
+            </div>
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--green);"></span> Developer Success</h4>
+                <ul>
+                    <li><strong>Now:</strong> Receive customers cold, no pre-sale context</li>
+                    <li><strong>Need:</strong> Adopt handoff intake, update shared health scores</li>
+                    <li><strong>Incentive:</strong> Stop starting from scratch with every customer</li>
+                </ul>
+            </div>
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--yellow);"></span> Professional Services</h4>
+                <ul>
+                    <li><strong>Now:</strong> Engagement ends, knowledge disappears</li>
+                    <li><strong>Need:</strong> Structured knowledge transfer, documentation standards</li>
+                    <li><strong>Incentive:</strong> PS becomes strategic partner, not one-and-done vendor</li>
+                </ul>
+            </div>
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--purple);"></span> Customer Support Eng</h4>
+                <ul>
+                    <li><strong>Now:</strong> Solve tickets in isolation, no business context</li>
+                    <li><strong>Need:</strong> Access shared customer timeline, flag patterns</li>
+                    <li><strong>Incentive:</strong> Faster resolution with context; recurring issues fixed upstream</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4 class="sub-header" style="font-size: 0.875rem;">Must Secure Buy-In</h4>
+        <div class="stakeholder-grid">
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--accent);"></span> David Totten (Boss)</h4>
+                <ul>
+                    <li><strong>Concern:</strong> Wants speed and a thought partner, not audit reports</li>
+                    <li><strong>How:</strong> Lead with frameworks and decisions, not data requests</li>
+                </ul>
+            </div>
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--green);"></span> Jeanne DeWitt Grosser (COO)</h4>
+                <ul>
+                    <li><strong>Concern:</strong> IPO-grade predictability; "build, don't buy"</li>
+                    <li><strong>How:</strong> Show operating model is AI-native and designed, not off-the-shelf</li>
+                </ul>
+            </div>
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--yellow);"></span> Nick Bogaty (CRO)</h4>
+                <ul>
+                    <li><strong>Concern:</strong> Field Eng RevOps may seem duplicative of his ops (Renee)</li>
+                    <li><strong>How:</strong> Position as complementary &mdash; post-sale commercial motion vs. pre-sale pipeline</li>
+                </ul>
+            </div>
+            <div class="stakeholder-card">
+                <h4><span class="dot" style="background: var(--red);"></span> Renee Kelley (Head RevOps)</h4>
+                <ul>
+                    <li><strong>Concern:</strong> Is this new role encroaching on her scope?</li>
+                    <li><strong>How:</strong> Early relationship, clear swim lanes, shared data architecture</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4 class="sub-header" style="font-size: 0.875rem;">Power Dynamics</h4>
+        <div class="power-map">
+            <strong>DECISION POWER:</strong>&nbsp;&nbsp; Jeanne (final say) &gt; David (direct authority) &gt; Nick (peer influence)<br>
+            <strong>EXECUTION POWER:</strong>&nbsp; Team leads (5 teams) &gt; ICs &gt; Renee (parallel org)<br>
+            <strong>BLOCKING POWER:</strong>&nbsp;&nbsp; Renee (scope conflicts) &gt; GTM Engineering (tool overlap) &gt; ICs (adoption fails)
+        </div>
+
+        <div class="danger-callout">
+            <h4>The Critical Relationship: David &harr; Renee</h4>
+            <p>If these two orgs have clear swim lanes, you succeed. If there's ambiguity, you spend your first 6 months navigating politics instead of building. Clarify this before Day 1.</p>
+        </div>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-number">7</span>
+            <h3>Executive Summary</h3>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="background: var(--surface-2); border-radius: 10px; padding: 1.25rem;">
+                <h4 style="font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 0.75rem;">The Situation</h4>
+                <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6;">Vercel ($200M+ ARR, $9.3B valuation, IPO track 2027) hired enterprise-grade GTM leadership in 2025. David Totten's 5-team Field Engineering org operates without a unifying operating system. Teams are siloed, handoffs lose context, metrics don't connect, consumption comp infrastructure doesn't exist.</p>
+            </div>
+            <div style="background: var(--surface-2); border-radius: 10px; padding: 1.25rem;">
+                <h4 style="font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--green); margin-bottom: 0.75rem;">Leading Hypothesis</h4>
+                <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6;">The immediate problem is data and visibility (teams can't coordinate because they can't see each other). The strategic opportunity is designing Vercel's Field Eng operating model from first principles &mdash; not copying Databricks or Datadog, but building something purpose-fit for a developer-first, usage-based, PLG-to-enterprise motion at IPO scale.</p>
+            </div>
+        </div>
+
+        <h4 class="sub-header" style="font-size: 0.875rem; margin-top: 0;">Five Key Components</h4>
+        <div class="stats-row">
+            <div class="stat-card" style="text-align: left; padding: 1rem 1.25rem;">
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">1</div>
+                <div style="font-size: 0.8125rem; color: var(--text); font-weight: 600; margin-top: 0.25rem;">Data Architecture</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Immediate pain, fastest ROI</div>
+            </div>
+            <div class="stat-card" style="text-align: left; padding: 1rem 1.25rem;">
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--yellow);">2</div>
+                <div style="font-size: 0.8125rem; color: var(--text); font-weight: 600; margin-top: 0.25rem;">Handoff Design</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Customer-facing impact</div>
+            </div>
+            <div class="stat-card" style="text-align: left; padding: 1rem 1.25rem;">
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--green);">3</div>
+                <div style="font-size: 0.8125rem; color: var(--text); font-weight: 600; margin-top: 0.25rem;">Metrics & Incentives</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Strategic, longer-term</div>
+            </div>
+            <div class="stat-card" style="text-align: left; padding: 1rem 1.25rem;">
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--purple);">4</div>
+                <div style="font-size: 0.8125rem; color: var(--text); font-weight: 600; margin-top: 0.25rem;">Operating Rhythm</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Governance, sustainability</div>
+            </div>
+            <div class="stat-card" style="text-align: left; padding: 1rem 1.25rem;">
+                <div style="font-size: 1.25rem; font-weight: 700; color: #ff6b6b;">5</div>
+                <div style="font-size: 0.8125rem; color: var(--text); font-weight: 600; margin-top: 0.25rem;">AI-Native Automation</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Aligned with "build, don't buy"</div>
+            </div>
+        </div>
+
+        <h4 class="sub-header" style="font-size: 0.875rem;">Critical Assumptions to Test</h4>
+        <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="card" style="border-top: 2px solid var(--red);">
+                <h3 style="font-size: 0.875rem;">Role Scope vs. Renee's Org</h3>
+                <p>Must be crystal clear before Day 1. Ambiguity here = 6 months of org politics.</p>
+            </div>
+            <div class="card" style="border-top: 2px solid var(--red);">
+                <h3 style="font-size: 0.875rem;">Data Infrastructure Readiness</h3>
+                <p>Every metric depends on data that may not exist. Assess in first 2 weeks on the job.</p>
+            </div>
+            <div class="card" style="border-top: 2px solid var(--red);">
+                <h3 style="font-size: 0.875rem;">The Expansion Unit</h3>
+                <p>What does growth look like at Vercel? Projects? Teams? Products? Consumption? Get this wrong and the whole model breaks.</p>
+            </div>
+        </div>
+
+        <h4 class="sub-header" style="font-size: 0.875rem;">Recommended Next Steps</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="card" style="border-top: 2px solid var(--accent);">
+                <div class="card-label" style="color: var(--accent);">In the Interview</div>
+                <ul>
+                    <li>Confirm role scope relative to Renee's Revenue Operations org</li>
+                    <li>Ask what the "unit of expansion" is at Vercel</li>
+                    <li>Align on 90-day expectations &mdash; diagnose + design first, or build immediately?</li>
+                    <li>Understand GTM Engineering function's roadmap to avoid overlap</li>
+                </ul>
+            </div>
+            <div class="card" style="border-top: 2px solid var(--green);">
+                <div class="card-label" style="color: var(--green);">First 30 Days on the Job</div>
+                <ul>
+                    <li>Audit data infrastructure &mdash; what exists, what's connected, what's missing</li>
+                    <li>Map actual customer journey across all 5 teams</li>
+                    <li>Build relationship with Renee &mdash; define swim lanes early</li>
+                    <li>Deliver one quick win: call transcript &rarr; CRM automation</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONVERSATION CHEAT SHEET -->
+    <h3 class="sub-header" style="margin-top: 3rem;">Conversation Cheat Sheet</h3>
+    <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Match David's likely questions to the right section of this strategy build.</p>
+
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+        <div class="cheat-row">
+            <div class="cheat-q">"Walk me through how you'd approach this"</div>
+            <div class="cheat-a">Lead with <strong>Step 1</strong> (core question reframe) &rarr; <strong>Step 2</strong> (5 buckets) &rarr; <strong>Step 3</strong> synthesis (data first, then model design). Shows structured thinking without over-engineering.</div>
+        </div>
+        <div class="cheat-row">
+            <div class="cheat-q">"What do you think we're getting wrong?"</div>
+            <div class="cheat-a">Pull from <strong>Step 5</strong> (pressure test). The expansion unit is unclear, Databricks playbook may not translate, and the relationship to Renee's org needs clarity. Shows critical thinking, not flattery.</div>
+        </div>
+        <div class="cheat-row">
+            <div class="cheat-q">"What would you do in the first 90 days?"</div>
+            <div class="cheat-a"><strong>Step 7</strong> next steps. Lead with "diagnose before you design, design before you build" &mdash; but offer the quick win (CRM automation) to show velocity.</div>
+        </div>
+        <div class="cheat-row">
+            <div class="cheat-q">"What keeps you up at night about this role?"</div>
+            <div class="cheat-a">Pull from <strong>Step 4</strong> (assumptions). Data infrastructure readiness and scope ambiguity with Renee's org. Shows self-awareness and intellectual honesty.</div>
+        </div>
+        <div class="cheat-row">
+            <div class="cheat-q">"How do we make 5 teams feel like one?"</div>
+            <div class="cheat-a"><strong>Step 6</strong> (stakeholder map). The answer isn't org design &mdash; it's shared metrics, shared customer records, and an operating rhythm that forces cross-team accountability. Reference the "Baton" handoff protocol.</div>
+        </div>
+        <div class="cheat-row">
+            <div class="cheat-q">If Jeanne or Nick are in the room</div>
+            <div class="cheat-a">Emphasize <strong>Step 5, Challenge 1</strong> &mdash; this operating system must plug into the larger GTM model, not be standalone. Shows enterprise thinking and awareness of their priorities.</div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+    <p>Built and hosted on Vercel &mdash; the platform this operating model is designed for.</p>
+    <p style="margin-top: 0.5rem;">Prepared by Bola Adesope &middot; VP Revenue Operations Candidate &middot; March 2026</p>
+</footer>
+
+<script>
+    function showJourney(view) {
+        document.querySelectorAll('.journey-view').forEach(v => v.classList.remove('jv-active'));
+        document.querySelectorAll('.journey-tab').forEach(t => t.classList.remove('jt-active'));
+        document.getElementById('jv-' + view).classList.add('jv-active');
+        event.target.classList.add('jt-active');
+    }
+
+    function toggleStage(header) {
+        var body = header.nextElementSibling;
+        var isOpen = header.classList.contains('sh-open');
+        document.querySelectorAll('.stage-header.sh-open').forEach(function(h) {
+            h.classList.remove('sh-open');
+            h.nextElementSibling.classList.remove('sb-open');
+        });
+        if (!isOpen) {
+            header.classList.add('sh-open');
+            body.classList.add('sb-open');
+        }
+    }
+
+    function showInner(btn, viewId) {
+        var body = btn.closest('.stage-body');
+        body.querySelectorAll('.inner-tab').forEach(function(t) { t.classList.remove('it-active'); });
+        body.querySelectorAll('.inner-view').forEach(function(v) { v.classList.remove('iv-active'); });
+        btn.classList.add('it-active');
+        document.getElementById(viewId).classList.add('iv-active');
+    }
+
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.target.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
